@@ -1,0 +1,7 @@
+{
+    "agents": [
+        "copilot"
+    ],
+    "cloud": true,
+    "guidelines": true
+}

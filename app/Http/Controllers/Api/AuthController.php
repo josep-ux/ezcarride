@@ -18,12 +18,20 @@ class AuthController extends Controller
         $fields = $request->validate([
             'name' => 'required|string',
             'email' => 'required|string|unique:users,email',
-            'password' => 'required|string'
+            'dob' => 'nullable|string|date',
+            'user_type' => 'nullable|string',
+            'country' => 'nullable|string',
+            'phone_number' => 'nullable|string|min:8',
+            'password' => 'required|string|min:8'
         ]);
 
         $user = User::create([
             'name' => $fields['name'],
             'email' => $fields['email'],
+            'dob' => $fields['dob'],
+            'user_type' => request()->is('api/rider/register') ? 'rider' : (request()->is('api/driver/register') ? 'driver' : 'admin'),
+            'country' => $fields['country'],
+            'phone_number' => $fields['phone_number'],
             'password' => Hash::make($fields['password'])
         ]);
 
@@ -56,9 +64,26 @@ class AuthController extends Controller
 
         if ($user) {
             // 3. User exists -> Attempt to log them in
-            if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
+            if (Auth::attempt(['email' => $request->email, 'password' => $request->password, 'user_type' => $user->user_type])) {
                 // Generate API Token
                 $token = $user->createToken('auth_token')->plainTextToken;
+
+                $user = Auth::user();
+                if($user->user_type === 'rider'){
+                    return response()->json([
+                    'message' => 'Logged in successfully',
+                    'access_token' => $token,
+                    'token_type' => 'Bearer',
+                    'user' => $user
+                ], 200);
+                } elseif($user->user_type === 'driver'){
+                   return response()->json([
+                    'message' => 'Logged in successfully',
+                    'access_token' => $token,
+                    'token_type' => 'Bearer',
+                    'user' => $user
+                ], 200);
+                }
 
                 return response()->json([
                     'message' => 'Logged in successfully',
@@ -87,13 +112,13 @@ class AuthController extends Controller
         broadcast(new UserCreated($newUser))->toOthers();
 
         return response()->json([
-            'message' => 'Account created and logged in successfully',
+            'message' => 'Account created successfully',
             'access_token' => $token,
             'token_type' => 'Bearer',
             'user' => $newUser
         ], 201);
     }
-
+    //update profile
     public function updateProfile(Request $request)
     {
         $user = $request->user(); // Get the authenticated user
@@ -130,6 +155,59 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json(['message' => 'Logged out successfully!']);
+    }
+    //change your password
+    public function changePassword(Request $request){
+         $user = $request->user(); // Get the authenticated user
+         $validator = Validator::make($request->all(), [
+            'password' => 'nullable|string|min:8',
+        ]);
+         if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+         // 2. Handle password update separately if provided
+        if (!empty($validator['password'])) {
+            $validator['password'] = Hash::make($validator['password']);
+        } else {
+            unset($validator['password']); // Do not overwrite with null
+        }
+         // 3. Update user database record
+        $user->update($validator->validated());
+
+        // 4. Return JSON response
+        return response()->json([
+            'success' => true,
+            'message' => 'password updated successfully.',
+            'data' => $user
+        ], 200);
+
+    }
+    // change image or update image
+    public function changeImage(Request $request){
+         $validator = Validator::make($request->all(), [
+            'image' => 'nullable|file',
+        ]);
+            if ($validator->fails()) {
+                return response()->json(['errors' => $validator->errors()], 422);
+            }
+            $user = $request->user(); // Get the authenticated user
+            if ($request->hasFile('image')) {
+                $file = $request->file('image');
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $filePath = $file->storeAs('public/images', $filename);
+                // Update user's image path in the database
+                $user->update(['image' => $filename]);
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Image updated successfully.',
+                    'data' => $user
+                ], 200);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No image file provided.'
+                ], 400);
+            }
     }
 
 }
