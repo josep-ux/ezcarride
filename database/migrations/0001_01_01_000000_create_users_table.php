@@ -18,7 +18,25 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->string('user_type')->default('user'); // type of user eg admin,driver or rider(user);
+            $table->string('user_type')->default('admin'); // type of user eg admin,driver or rider(user);
+            $table->date('dob')->nullable();
+            $table->string('country')->nullable();
+            $table->string('phone_number')->nullable();
+            $table->string('address')->nullable();
+            $table->string('city')->nullable();
+            $table->string('state')->nullable();
+            $table->string('zip_code')->nullable();
+            $table->string('license_number')->nullable();
+            $table->string('vehicle_type')->nullable();
+            $table->string('vehicle_model')->nullable();
+            $table->string('vehicle_color')->nullable();
+            $table->string('vehicle_plate_number')->nullable();
+            $table->string('bank_name')->nullable();
+            $table->string('bank_account_number')->nullable();
+            $table->string('bank_account_name')->nullable();
+            $table->string('payment_method')->nullable();
+            $table->string('stripe_account_id')->nullable();
+            $table->string('paypal_email')->nullable();
             $table->string('profile_image')->nullable();
             $table->string('status')->default('offline'); // offline, online, on_trip
             $table->decimal('curr_lat', 6, 3); //create  longitude
