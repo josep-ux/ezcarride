@@ -126,19 +126,17 @@ class AuthController extends Controller
             'name' => 'required|string',
             'phone_number' => 'required|string|min:8',
             'dob' => 'nullable|string|date',
-            'user_type' => 'nullable|string',
-            //'password' => 'nullable|string'
+            'city' => 'nullable|string',
+            'country' => 'nullable|string',
+            'status' => 'online|offline|on_trip',
+            'curr_lat' => 'nullable|numeric',
+            'curr_long' => 'nullable|numeric',
+            'address' => 'nullable|string',
+            'zip_code' => 'nullable|string',
         ]);
          if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
-         // 2. Handle password update separately if provided
-        // if (!empty($validator['password'])) {
-        //     $validator['password'] = Hash::make($validator['password']);
-        // } else {
-        //     unset($validator['password']); // Do not overwrite with null
-        // }
-
         // 3. Update user database record
         $user->update($request->all());
 
@@ -185,7 +183,7 @@ class AuthController extends Controller
     // change image or update image
     public function changeImage(Request $request){
          $validator = Validator::make($request->all(), [
-            'image' => 'nullable|file',
+            'image' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:2048', // Max size 2MB
         ]);
             if ($validator->fails()) {
                 return response()->json(['errors' => $validator->errors()], 422);
