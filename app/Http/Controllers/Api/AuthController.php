@@ -19,7 +19,7 @@ class AuthController extends Controller
             'name' => 'required|string',
             'email' => 'required|string|unique:users,email',
             'dob' => 'nullable|string|date',
-            'user_type' => 'nullable|string',
+            'user_type' => 'driver|rider|admin',
             'country' => 'nullable|string',
             'phone_number' => 'nullable|string|min:8',
             'password' => 'required|string|min:8'
