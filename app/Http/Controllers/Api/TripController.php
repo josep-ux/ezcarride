@@ -429,6 +429,6 @@ class TripController extends Controller
         }
         return response()->json($trip->rider_history, 200);
     }
-    
+
 }
 

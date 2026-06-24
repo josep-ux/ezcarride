@@ -147,6 +147,39 @@ class AuthController extends Controller
             'data' => $user
         ], 200);
     }
+    public function updateProfileDriver(Request $request){
+
+        $user = $request->user(); // Get the authenticated user
+         $validator = Validator::make($request->all(), [
+            'name' => 'required|string',
+            'phone_number' => 'required|string|min:8',
+            'dob' => 'nullable|string|date',
+            'city' => 'nullable|string',
+            'country' => 'nullable|string',
+            'status' => 'online|offline|on_trip',
+            'curr_lat' => 'nullable|numeric',
+            'curr_long' => 'nullable|numeric',
+            'address' => 'nullable|string',
+            'zip_code' => 'nullable|string',
+            'license_number' => 'nullable|string',
+            'vehicle_type' => 'nullable|string',
+            'vehicle_model' => 'nullable|string',
+            'vehicle_color' => 'nullable|string',
+            'vehicle_plate_number' => 'nullable|string',
+        ]);
+         if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+        // 3. Update user database record
+        $user->update($request->all());
+
+        // 4. Return JSON response
+        return response()->json([
+            'success' => true,
+            'message' => 'Profile updated successfully.',
+            'data' => $user
+        ], 200);
+    }
     // Logout user (Revoke token)
     public function logout(Request $request)
     {
@@ -182,6 +215,59 @@ class AuthController extends Controller
     }
     // change image or update image
     public function changeImage(Request $request){
+         $validator = Validator::make($request->all(), [
+            'image' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:2048', // Max size 2MB
+        ]);
+            if ($validator->fails()) {
+                return response()->json(['errors' => $validator->errors()], 422);
+            }
+            $user = $request->user(); // Get the authenticated user
+            if ($request->hasFile('image')) {
+                $file = $request->file('image');
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $filePath = $file->storeAs('public/images', $filename);
+                // Update user's image path in the database
+                $user->update(['image' => $filename]);
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Image updated successfully.',
+                    'data' => $user
+                ], 200);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No image file provided.'
+                ], 400);
+            }
+    }
+
+    public function changePasswordDriver(Request $request){
+         $user = $request->user(); // Get the authenticated user
+         $validator = Validator::make($request->all(), [
+            'password' => 'nullable|string|min:8',
+        ]);
+         if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+         // 2. Handle password update separately if provided
+        if (!empty($validator['password'])) {
+            $validator['password'] = Hash::make($validator['password']);
+        } else {
+            unset($validator['password']); // Do not overwrite with null
+        }
+         // 3. Update user database record
+        $user->update($validator->validated());
+
+        // 4. Return JSON response
+        return response()->json([
+            'success' => true,
+            'message' => 'password updated successfully.',
+            'data' => $user
+        ], 200);
+
+    }
+
+    public function changeImageDriver(Request $request){
          $validator = Validator::make($request->all(), [
             'image' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:2048', // Max size 2MB
         ]);
