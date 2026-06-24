@@ -39,8 +39,8 @@ return new class extends Migration
             $table->string('paypal_email')->nullable();
             $table->string('profile_image')->nullable();
             $table->string('status')->default('offline'); // offline, online, on_trip
-            $table->decimal('curr_lat', 6, 6)->nullable(); //create  longitude
-            $table->decimal('curr_long', 6, 6)->nullable();// Creates latitude
+            $table->decimal('curr_lat', 10, 4)->change()->nullable();
+            $table->decimal('curr_long', 10, 4)->change()->nullable()   ;
             $table->boolean('is_available')->default(true);
             $table->rememberToken();
             $table->timestamps();
