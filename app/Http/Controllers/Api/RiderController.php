@@ -9,8 +9,16 @@ use App\Models\Trip;
 class RiderController extends Controller
 {
     public function dashboard(){
+        $data = [
+            'user' => auth()->user(),
+            'total_trips' => Trip::where('rider_id', auth()->user()->id)->count(),
+            'completed_trips' => Trip::where('rider_id', auth()->user()->id)->where('status', 'completed')->count(),
+            'cancelled_trips' => Trip::where('rider_id', auth()->user()->id)->where('status', 'cancelled')->count(),
+            'ongoing_trips' => Trip::where('rider_id', auth()->user()->id)->where('status', 'ongoing')->count(),
+        ];
        return response()->json([
             'success' => true,
+            'data' => $data
         ], 200);
     }
     public function requestRide(Request $request){

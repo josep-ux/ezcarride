@@ -19,7 +19,8 @@ Route::post('/login', [AuthController::class, 'login']);
 // })->middleware('auth:sanctum');
 //you must login to use any of this end points here
 Route::middleware('auth:sanctum')->group(function () {
-    Route::put('/updateProfile', [AuthController::class, 'updateProfile']);
+    Route::put('/rider/updateProfile', [AuthController::class, 'updateProfile']);
+     Route::put('/driver/updateProfile', [AuthController::class, 'updateProfileDriver']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/rideRequest', [TripController::class, 'requestRide']);
     Route::get('/rider', [RiderController::class, 'dashboard']);
