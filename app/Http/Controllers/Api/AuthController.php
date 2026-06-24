@@ -19,7 +19,7 @@ class AuthController extends Controller
             'name' => 'required|string',
             'email' => 'required|string|unique:users,email',
             'dob' => 'nullable|string|date',
-            'user_type' => 'driver|rider|admin',
+            'user_type' => 'nullable|string|in:driver,rider,admin',
             'country' => 'nullable|string',
             'phone_number' => 'nullable|string|min:8',
             'password' => 'required|string|min:8'
@@ -119,7 +119,7 @@ class AuthController extends Controller
         ], 201);
     }
     //update profile
-    public function updateProfile(Request $request)
+    public function updateProfileRider(Request $request)
     {
         $user = $request->user(); // Get the authenticated user
          $validator = Validator::make($request->all(), [
@@ -128,7 +128,7 @@ class AuthController extends Controller
             'dob' => 'nullable|string|date',
             'city' => 'nullable|string',
             'country' => 'nullable|string',
-            'status' => 'online|offline|on_trip',
+            'status' => 'nullable|string|in:online,offline,on_trip',
             'curr_lat' => 'nullable|numeric',
             'curr_long' => 'nullable|numeric',
             'address' => 'nullable|string',
@@ -156,7 +156,7 @@ class AuthController extends Controller
             'dob' => 'nullable|string|date',
             'city' => 'nullable|string',
             'country' => 'nullable|string',
-            'status' => 'online|offline|on_trip',
+            'status' => 'nullable|string|in:online,offline,on_trip',
             'curr_lat' => 'nullable|numeric',
             'curr_long' => 'nullable|numeric',
             'address' => 'nullable|string',
