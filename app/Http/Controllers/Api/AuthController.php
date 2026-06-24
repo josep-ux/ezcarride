@@ -129,8 +129,8 @@ class AuthController extends Controller
             'city' => 'nullable|string',
             'country' => 'nullable|string',
             'status' => 'nullable|string|in:online,offline,on_trip',
-            'curr_lat' => 'nullable',
-            'curr_long' => 'nullable',
+            'curr_lat' => 'nullable|between:-90,90',
+            'curr_long' => 'nullable|between:-180,180',
             'address' => 'nullable|string',
             'zip_code' => 'nullable|string',
         ]);
