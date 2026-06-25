@@ -39,8 +39,8 @@ return new class extends Migration
             $table->string('paypal_email')->nullable();
             $table->string('profile_image')->nullable();
             $table->string('status')->default('offline'); // offline, online, on_trip
-            $table->decimal('curr_lat', 3, 6)->nullable();
-            $table->decimal('curr_long', 3, 6)->nullable();
+            $table->decimal('curr_lat')->nullable();
+            $table->decimal('curr_long')->nullable();
             $table->boolean('is_available')->default(true);
             $table->rememberToken();
             $table->timestamps();
@@ -67,10 +67,10 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users');
             $table->foreignId('driver_id')->nullable()->constrained('users');
             $table->string('status')->default('pending'); // pending, accepted, ongoing, completed
-            $table->decimal('pickup_latitude', 3, 6);
-            $table->decimal('pickup_longitude', 3, 6);
-            $table->decimal('dropoff_latitude', 3, 6);
-            $table->decimal('dropoff_longitude', 3, 6);
+            $table->decimal('pickup_latitude');
+            $table->decimal('pickup_longitude');
+            $table->decimal('dropoff_latitude');
+            $table->decimal('dropoff_longitude');
             $table->decimal('fare', 8, 2);
             $table->timestamps();
         });
@@ -89,7 +89,7 @@ return new class extends Migration
             // $table->point('dropoff_location');
             // $table->string('pickup_address');
             // $table->string('dropoff_address');
-            $table->decimal('pickup_lat', 3, 6);
+            $table->decimal('pickup_lat');
             $table->decimal('pickup_long');
             $table->decimal('dropoff_lat');
             $table->decimal('dropoff_long');
