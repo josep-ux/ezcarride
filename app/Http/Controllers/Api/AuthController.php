@@ -127,6 +127,7 @@ class AuthController extends Controller
             'curr_long' => 'nullable|between:-180,180',
             'address' => 'nullable|string',
             'zip_code' => 'nullable|string',
+            'state' => 'nullable|string',
         ]);
          if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
