@@ -20,6 +20,7 @@ Route::prefix('v1')->group(function () {
 //     return $request->user();
 // })->middleware('auth:sanctum');
 //you must login to use any of this end points here
+
 Route::prefix('v1/us/rider')->middleware('auth:sanctum')->group(function () {
     Route::put('/updateProfile', [AuthController::class, 'updateProfileRider']);
     Route::post('/rideRequest', [TripController::class, 'requestRide']);
@@ -141,6 +142,7 @@ Route::prefix('v1/ng/driver')->middleware('auth:sanctum')->group(function () {
     Route::get('/trip/{id}/ratingHistory', [TripController::class, 'getTripRatingHistory']);
     Route::post('/trip/{id}/ratingHistory', [TripController::class, 'updateTripRatingHistory']);
 });
+
 Route::prefix('v1/us/driver')->middleware('auth:sanctum')->group(function () {
     Route::put('/driver/updateProfile', [AuthController::class, 'updateProfileDriver']);
     Route::get('/driver', [DriverController::class, 'dashboard']);
