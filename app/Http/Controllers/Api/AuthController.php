@@ -29,7 +29,7 @@ class AuthController extends Controller
             'name' => $fields['name'],
             'email' => $fields['email'],
             'dob' => $fields['dob'],
-            'user_type' => request()->is('api/rider/register') ? 'rider' : (request()->is('api/driver/register') ? 'driver' : 'admin'),
+            'user_type' => request()->is('api/v1/rider/register') ? 'rider' : (request()->is('api/v1/driver/register') ? 'driver' : 'admin'),
             'country' => $fields['country'],
             'phone_number' => $fields['phone_number'],
             'password' => Hash::make($fields['password'])
