@@ -64,32 +64,26 @@ class AuthController extends Controller
 
         if ($user) {
             // 3. User exists -> Attempt to log them in
-            if (Auth::attempt(['email' => $request->email, 'password' => $request->password, 'user_type' => $user->user_type])) {
+            if (Auth::attempt(['email' => $request->email, 'password' => $request->password, 'user_type' => $user->user_type, 'country' => $user->country])) {
                 // Generate API Token
                 $token = $user->createToken('auth_token')->plainTextToken;
 
                 $user = Auth::user();
-                if($user->user_type === 'rider'){
-                    return response()->json([
-                    'message' => 'Logged in successfully',
-                    'access_token' => $token,
-                    'token_type' => 'Bearer',
-                    'user' => $user
-                ], 200);
-                } elseif($user->user_type === 'driver'){
-                   return response()->json([
-                    'message' => 'Logged in successfully',
-                    'access_token' => $token,
-                    'token_type' => 'Bearer',
-                    'user' => $user
-                ], 200);
+                $navigateTo  = '/api/login';
+                if($user->user_type === 'rider' && $user->country === 'nigeria'){
+                   $navigateTo = '/api/v1/ng/rider/dashboard';
+                } elseif($user->user_type === 'rider' && $user->country === 'united states'){
+                    $navigateTo = '/api/v1/us/rider/dashboard';
+                } elseif($user->user_type === 'driver' && $user->country === 'nigeria'){
+                    $navigateTo = '/api/v1/ng/driver/dashboard';
+                } elseif($user->user_type === 'driver' && $user->country === 'united states'){
+                    $navigateTo = '/api/v1/us/driver/dashboard';
                 }
-
-                return response()->json([
-                    'message' => 'Logged in successfully',
+                  return response()->json([
+                    'message' => 'Login successful',
                     'access_token' => $token,
                     'token_type' => 'Bearer',
-                    'user' => $user
+                    'redirect_to' => $navigateTo // Frontend reads this to navigate
                 ], 200);
             }
 
