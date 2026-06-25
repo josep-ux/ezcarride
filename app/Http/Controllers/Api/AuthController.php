@@ -119,7 +119,7 @@ class AuthController extends Controller
          $validator = Validator::make($request->all(), [
             'name' => 'required|string',
             'phone_number' => 'required|string|min:8',
-            'dob' => 'nullable|string|date',
+            'dob' => 'nullable|date',
             'city' => 'nullable|string',
             'country' => 'nullable|string',
             'status' => 'nullable|string|in:online,offline,on_trip',
