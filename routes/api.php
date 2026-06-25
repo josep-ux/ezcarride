@@ -15,10 +15,6 @@ Route::prefix('v1')->group(function () {
     Route::post('/rider/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
 });
-
-// Route::get('/user', function (Request $request) {
-//     return $request->user();
-// })->middleware('auth:sanctum');
 //you must login to use any of this end points here
 
 Route::prefix('v1/us/rider')->middleware('auth:sanctum')->group(function () {
