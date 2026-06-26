@@ -29,6 +29,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'curr_lat' => 'decimal:8',
+            'curr_long' => 'decimal:8',
         ];
     }
     public function trips(){
