@@ -130,8 +130,8 @@ class AuthController extends Controller
         'city' => ['required', 'string'],
         'country' => ['required', 'string', 'in:united states,nigeria'],
         'status' => ['nullable', 'string', 'in:online,offline,on_trip'],
-        'curr_lat' => ['required', 'numeric', 'between:-90,90', 'regex:/^-?\d{1,2}(\.\d{1,8})?$/'],
-        'curr_long' => ['required', 'numeric', 'between:-180,180', 'regex:/^-?\d{1,2}(\.\d{1,8})?$/'],
+        'curr_lat' => ['nullable', 'numeric', 'between:-90,90', 'regex:/^-?\d{1,2}(\.\d{1,8})?$/'],
+        'curr_long' => ['nullable', 'numeric', 'between:-180,180', 'regex:/^-?\d{1,2}(\.\d{1,8})?$/'],
         'address' => ['nullable', 'string'],
         'zip_code' => ['nullable', 'string'],
         'state' => ['nullable', 'string'],
@@ -146,53 +146,29 @@ class AuthController extends Controller
                 'message' => 'Profile updated successfully.',
                 'user' => $user->fresh() // Returns the freshly updated user record
             ], 200);
-        //}
-        //$user = $request->user(); // Get the authenticated user
-        // $validator = Validator::make($request->all(), [
-        //     'name' => 'required|string',
-        //     'phone_number' => 'required|string|min:8',
-        //     'dob' => 'nullable|date',
-        //     'city' => 'nullable|string',
-        //     'country' => 'nullable|string|in:united states,nigeria',
-        //     'status' => 'nullable|string|in:online,offline,on_trip',
-        //     'curr_lat' => 'nullable|between:-90,90',
-        //     'curr_long' => 'nullable|between:-180,180',
-        //     'address' => 'nullable|string',
-        //     'zip_code' => 'nullable|string',
-        //     'state' => 'nullable|string',
-        // ]);
-        //  if ($validator->fails()) {
-        //     return response()->json(['errors' => $validator->errors()], 422);
-        // }
-        // // 3. Update user database record
-        // $user->update($request->all());
 
-        // // 4. Return JSON response
-        // return response()->json([
-        //     'success' => true,
-        //     'message' => 'Profile updated successfully.',
-        //     'data' => $user
-        // ], 200);
     }
     public function updateProfileDriver(Request $request){
 
         $user = $request->user(); // Get the authenticated user
          $validator = Validator::make($request->all(), [
-            'name' => 'required|string',
-            'phone_number' => 'required|string|min:8',
-            'dob' => 'nullable|string|date',
-            'city' => 'nullable|string',
-            'country' => 'nullable|string',
-            'status' => 'nullable|string|in:online,offline,on_trip',
-            'curr_lat' => 'nullable|numeric',
-            'curr_long' => 'nullable|numeric',
-            'address' => 'nullable|string',
-            'zip_code' => 'nullable|string',
-            'license_number' => 'nullable|string',
-            'vehicle_type' => 'nullable|string',
-            'vehicle_model' => 'nullable|string',
-            'vehicle_color' => 'nullable|string',
-            'vehicle_plate_number' => 'nullable|string',
+            'name' => ['nullable', 'string', 'max:255'],
+            'email' => ['nullable', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'phone_number' => ['required', 'string', 'min:8'],
+            'dob' => ['required', 'date'],
+            'city' => ['required', 'string'],
+            'country' => ['required', 'string', 'in:united states,nigeria'],
+            'status' => ['nullable', 'string', 'in:online,offline,on_trip'],
+            'curr_lat' => ['nullable', 'numeric', 'between:-90,90', 'regex:/^-?\d{1,2}(\.\d{1,8})?$/'],
+            'curr_long' => ['nullable', 'numeric', 'between:-180,180', 'regex:/^-?\d{1,2}(\.\d{1,8})?$/'],
+            'address' => ['nullable', 'string'],
+            'zip_code' => ['nullable', 'string'],
+            'state' => ['required', 'string'],
+            'license_number' => ['required', 'string'],
+            'vehicle_type' => ['required', 'string'],
+            'vehicle_model' => ['required', 'string'],
+            'vehicle_color' => ['required', 'string'],
+            'vehicle_plate_number' => ['required', 'string'],
         ]);
          if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
