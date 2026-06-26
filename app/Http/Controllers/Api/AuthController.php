@@ -123,15 +123,15 @@ class AuthController extends Controller
     // 2. Validate incoming profile inputs dynamically
     // The email unique rule ignores the current user's ID to prevent validation failure
     $validated = $request->validate([
-        'name' => ['required', 'string', 'max:255'],
-        'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+        'name' => ['nullable', 'string', 'max:255'],
+        'email' => ['nullable', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
         'phone_number' => ['required', 'string', 'min:8'],
         'dob' => ['required', 'date'],
         'city' => ['required', 'string'],
         'country' => ['required', 'string', 'in:united states,nigeria'],
         'status' => ['nullable', 'string', 'in:online,offline,on_trip'],
-        'curr_lat' => ['nullable', 'between:-90,90'],
-        'curr_long' => ['nullable', 'between:-180,180'],
+        'curr_lat' => ['nullable'],
+        'curr_long' => ['nullable'],
         'address' => ['nullable', 'string'],
         'zip_code' => ['nullable', 'string'],
         'state' => ['nullable', 'string'],
