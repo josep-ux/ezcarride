@@ -125,6 +125,16 @@ class AuthController extends Controller
     $validated = $request->validate([
         'name' => ['required', 'string', 'max:255'],
         'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+        'phone_number' => ['required', 'string', 'min:8'],
+        'dob' => ['required', 'date'],
+        'city' => ['required', 'string'],
+        'country' => ['required', 'string', 'in:united states,nigeria'],
+        'status' => ['nullable', 'string', 'in:online,offline,on_trip'],
+        'curr_lat' => ['nullable', 'between:-90,90'],
+        'curr_long' => ['nullable', 'between:-180,180'],
+        'address' => ['nullable', 'string'],
+        'zip_code' => ['nullable', 'string'],
+        'state' => ['nullable', 'string'],
     ]);
 
             // 3. Persist the changes directly to your database table fields
@@ -221,6 +231,11 @@ class AuthController extends Controller
 
     // 4. Persist the changes directly to your database table
     $user->save();
+    return response()->json([
+        'success' => true,
+        'message' => 'Password updated successfully.',
+        'data' => $user
+    ], 200);
     }
     // change image or update image
     public function changeImage(Request $request){
