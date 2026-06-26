@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\Rule;
 
 class AuthController extends Controller
 {
@@ -115,32 +117,52 @@ class AuthController extends Controller
     //update profile
     public function updateProfileRider(Request $request)
     {
-        $user = $request->user(); // Get the authenticated user
-         $validator = Validator::make($request->all(), [
-            'name' => 'required|string',
-            'phone_number' => 'required|string|min:8',
-            'dob' => 'nullable|date',
-            'city' => 'nullable|string',
-            'country' => 'nullable|string',
-            'status' => 'nullable|string|in:online,offline,on_trip',
-            'curr_lat' => 'nullable|between:-90,90',
-            'curr_long' => 'nullable|between:-180,180',
-            'address' => 'nullable|string',
-            'zip_code' => 'nullable|string',
-            'state' => 'nullable|string',
-        ]);
-         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-        // 3. Update user database record
-        $user->update($request->all());
+        // 1. Fetch the authenticated user instance
+    $user = $request->user();
 
-        // 4. Return JSON response
-        return response()->json([
-            'success' => true,
-            'message' => 'Profile updated successfully.',
-            'data' => $user
-        ], 200);
+    // 2. Validate incoming profile inputs dynamically
+    // The email unique rule ignores the current user's ID to prevent validation failure
+    $validated = $request->validate([
+        'name' => ['required', 'string', 'max:255'],
+        'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+    ]);
+
+            // 3. Persist the changes directly to your database table fields
+            $user->update($validated);
+
+            // 4. Return a clean API JSON success response
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Profile updated successfully.',
+                'user' => $user->fresh() // Returns the freshly updated user record
+            ], 200);
+        //}
+        //$user = $request->user(); // Get the authenticated user
+        // $validator = Validator::make($request->all(), [
+        //     'name' => 'required|string',
+        //     'phone_number' => 'required|string|min:8',
+        //     'dob' => 'nullable|date',
+        //     'city' => 'nullable|string',
+        //     'country' => 'nullable|string|in:united states,nigeria',
+        //     'status' => 'nullable|string|in:online,offline,on_trip',
+        //     'curr_lat' => 'nullable|between:-90,90',
+        //     'curr_long' => 'nullable|between:-180,180',
+        //     'address' => 'nullable|string',
+        //     'zip_code' => 'nullable|string',
+        //     'state' => 'nullable|string',
+        // ]);
+        //  if ($validator->fails()) {
+        //     return response()->json(['errors' => $validator->errors()], 422);
+        // }
+        // // 3. Update user database record
+        // $user->update($request->all());
+
+        // // 4. Return JSON response
+        // return response()->json([
+        //     'success' => true,
+        //     'message' => 'Profile updated successfully.',
+        //     'data' => $user
+        // ], 200);
     }
     public function updateProfileDriver(Request $request){
 
@@ -184,29 +206,21 @@ class AuthController extends Controller
     }
     //change your password
     public function changePassword(Request $request){
-         $user = $request->user(); // Get the authenticated user
-         $validator = Validator::make($request->all(), [
-            'password' => 'nullable|string|min:8',
-        ]);
-         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-         // 2. Handle password update separately if provided
-        if (!empty($validator['password'])) {
-            $validator['password'] = Hash::make($validator['password']);
-        } else {
-            unset($validator['password']); // Do not overwrite with null
-        }
-         // 3. Update user database record
-        $user->update($validator->validated());
+         // 1. Validate the form inputs
+       // 1. Validate the incoming JSON payload
+    $validated = $request->validate([
+        'password' => ['required', 'current_password'],
+        'new_password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
+    ]);
 
-        // 4. Return JSON response
-        return response()->json([
-            'success' => true,
-            'message' => 'password updated successfully.',
-            'data' => $user
-        ], 200);
+    // 2. Fetch the authenticated user instance
+    $user = $request->user();
 
+    // 3. Assign the securely hashed new password directly to the attribute
+    $user->password = Hash::make($validated['new_password']);
+
+    // 4. Persist the changes directly to your database table
+    $user->save();
     }
     // change image or update image
     public function changeImage(Request $request){
@@ -238,21 +252,21 @@ class AuthController extends Controller
 
     public function changePasswordDriver(Request $request){
          $user = $request->user(); // Get the authenticated user
-         $validator = Validator::make($request->all(), [
-            'password' => 'nullable|string|min:8',
-        ]);
-         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-         // 2. Handle password update separately if provided
-        if (!empty($validator['password'])) {
-            $validator['password'] = Hash::make($validator['password']);
-        } else {
-            unset($validator['password']); // Do not overwrite with null
-        }
-         // 3. Update user database record
-        $user->update($validator->validated());
+          // 1. Validate the form inputs
+       // 1. Validate the incoming JSON payload
+    $validated = $request->validate([
+        'password' => ['required', 'current_password'],
+        'new_password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
+    ]);
 
+    // 2. Fetch the authenticated user instance
+    $user = $request->user();
+
+    // 3. Assign the securely hashed new password directly to the attribute
+    $user->password = Hash::make($validated['new_password']);
+
+    // 4. Persist the changes directly to your database table
+           $user->save();
         // 4. Return JSON response
         return response()->json([
             'success' => true,
