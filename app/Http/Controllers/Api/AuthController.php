@@ -209,15 +209,15 @@ class AuthController extends Controller
          // 1. Validate the form inputs
        // 1. Validate the incoming JSON payload
     $validated = $request->validate([
-        'password' => ['required', 'current_password'],
-        'new_password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
+        'current_password' => ['required', 'current_password'],
+        'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
     ]);
 
     // 2. Fetch the authenticated user instance
     $user = $request->user();
 
     // 3. Assign the securely hashed new password directly to the attribute
-    $user->password = Hash::make($validated['new_password']);
+    $user->password = Hash::make($validated['password']);
 
     // 4. Persist the changes directly to your database table
     $user->save();
