@@ -96,11 +96,11 @@ Route::prefix('v1/ng/rider')->middleware('auth:sanctum')->group(function () {
 });
 
 Route::prefix('v1/ng/driver')->middleware('auth:sanctum')->group(function () {
-    Route::put('/driver/updateProfile', [AuthController::class, 'updateProfileDriver']);
-    Route::get('/driver', [DriverController::class, 'dashboard']);
+    Route::put('/updateProfile', [AuthController::class, 'updateProfileDriver']);
+    Route::get('/dashboard', [DriverController::class, 'dashboard']);
     Route::post('/requestRide', [DriverController::class, 'requestRide']);
-    Route::put('/driver/updateImage', [AuthController::class, 'changeImageDriver']);
-    Route::put('/driver/updatePassword', [AuthController::class, 'changePasswordDriver']);
+    Route::put('/updateImage', [AuthController::class, 'changeImageDriver']);
+    Route::put('/updatePassword', [AuthController::class, 'changePasswordDriver']);
     Route::post('/updateLocation', [DriverController::class, 'updateLocation']);
     Route::post('/acceptRide', [DriverController::class, 'acceptRide']);
     Route::post('/completeRide', [DriverController::class, 'completeRide']);
@@ -140,11 +140,11 @@ Route::prefix('v1/ng/driver')->middleware('auth:sanctum')->group(function () {
 });
 
 Route::prefix('v1/us/driver')->middleware('auth:sanctum')->group(function () {
-    Route::put('/driver/updateProfile', [AuthController::class, 'updateProfileDriver']);
-    Route::get('/driver', [DriverController::class, 'dashboard']);
+    Route::put('/updateProfile', [AuthController::class, 'updateProfileDriver']);
+    Route::get('/dashboard', [DriverController::class, 'dashboard']);
     Route::post('/requestRide', [DriverController::class, 'requestRide']);
-    Route::put('/driver/updateImage', [AuthController::class, 'changeImageDriver']);
-    Route::put('/driver/updatePassword', [AuthController::class, 'changePasswordDriver']);
+    Route::put('/updateImage', [AuthController::class, 'changeImageDriver']);
+    Route::put('updatePassword', [AuthController::class, 'changePasswordDriver']);
     Route::put('/updateLocation', [DriverController::class, 'updateLocation']);
     Route::put('/acceptRide', [DriverController::class, 'acceptRide']);
     Route::post('/completeRide', [DriverController::class, 'completeRide']);
