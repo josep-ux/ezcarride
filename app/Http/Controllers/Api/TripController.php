@@ -39,7 +39,7 @@ class TripController extends Controller
             return response()->json(['message' => 'Trip not found'], 404);
         }
         $request->validate([
-            'status' => 'required|string|in:requested,accepted,in_progress,completed,cancelled',
+            'status' => 'required|string|in:pending,accepted,in_progress,completed,cancelled',
         ]);
         $trip->status = $request->status;
         $trip->save();
