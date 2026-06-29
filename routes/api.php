@@ -145,11 +145,11 @@ Route::prefix('v1/us/driver')->middleware('auth:sanctum')->group(function () {
     Route::post('/requestRide', [DriverController::class, 'requestRide']);
     Route::put('/driver/updateImage', [AuthController::class, 'changeImageDriver']);
     Route::put('/driver/updatePassword', [AuthController::class, 'changePasswordDriver']);
-    Route::post('/updateLocation', [DriverController::class, 'updateLocation']);
-    Route::post('/acceptRide', [DriverController::class, 'acceptRide']);
+    Route::put('/updateLocation', [DriverController::class, 'updateLocation']);
+    Route::put('/acceptRide', [DriverController::class, 'acceptRide']);
     Route::post('/completeRide', [DriverController::class, 'completeRide']);
-    Route::post('/cancelRide', [DriverController::class, 'cancelRide']);
-    Route::post('/updateRideStatus', [DriverController::class, 'updateRideStatus']);
+    Route::put('/cancelRide', [DriverController::class, 'cancelRide']);
+    Route::put('/updateRideStatus', [DriverController::class, 'updateRideStatus']);
     Route::get('/trips', [TripController::class, 'index']);
     Route::get('/trip/{id}', [TripController::class, 'show']);
     Route::get('/trip/{id}/status', [TripController::class, 'getTripStatus']);
