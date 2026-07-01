@@ -246,8 +246,8 @@ class AuthController extends Controller
           // 1. Validate the form inputs
        // 1. Validate the incoming JSON payload
     $validated = $request->validate([
-        'password' => ['required', 'current_password'],
-        'new_password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
+        'current_password' => ['required', 'current_password'],
+        'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
     ]);
 
     // 2. Fetch the authenticated user instance

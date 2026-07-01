@@ -34,7 +34,7 @@ class TripController extends Controller
     }
     public function updateTripStatus(Request $request, $id)
     {
-        $trip = $request->user()->trips()->find($id);
+        $trip = $request->user()->trips()->findOrFail($id);
         if (!$trip) {
             return response()->json(['message' => 'Trip not found'], 404);
         }
