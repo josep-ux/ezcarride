@@ -254,7 +254,7 @@ class AuthController extends Controller
     $user = $request->user();
 
     // 3. Assign the securely hashed new password directly to the attribute
-    $user->password = Hash::make($validated['new_password']);
+    $user->password = Hash::make($validated['password']);
 
     // 4. Persist the changes directly to your database table
            $user->save();
