@@ -153,7 +153,7 @@ Route::prefix('v1/us/driver')->middleware('auth:sanctum')->group(function () {
     Route::get('/trips', [TripController::class, 'index']);
     Route::get('/trip/{id}', [TripController::class, 'show']);
     Route::get('/trip/{id}/status', [TripController::class, 'getTripStatus']);
-    Route::post('/trip/{id}/status', [TripController::class, 'updateTripStatus']);
+    Route::put('/trip/{id}/status', [TripController::class, 'updateTripStatus']);
     Route::get('/trip/{id}/location', [TripController::class, 'getTripLocation']);
     Route::post('/trip/{id}/location', [TripController::class, 'updateTripLocation']);
     Route::get('/trip/{id}/driver', [TripController::class, 'getTripDriver']);
