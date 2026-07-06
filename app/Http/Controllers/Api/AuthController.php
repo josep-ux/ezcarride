@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Facades\Password as PasswordFacade;
+use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
 use Illuminate\Auth\Events\PasswordReset;
@@ -198,7 +199,7 @@ class AuthController extends Controller
        // 1. Validate the incoming JSON payload
     $validated = $request->validate([
         'current_password' => ['required', 'current_password'],
-        'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
+        'password' => ['required', 'confirmed', PasswordRule::min(8)->mixedCase()->numbers()->symbols()],
     ]);
 
     // 2. Fetch the authenticated user instance
@@ -249,7 +250,7 @@ class AuthController extends Controller
        // 1. Validate the incoming JSON payload
     $validated = $request->validate([
         'current_password' => ['required', 'current_password'],
-        'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
+        'password' => ['required', 'confirmed', PasswordRule::min(8)->mixedCase()->numbers()->symbols()],
     ]);
 
     // 2. Fetch the authenticated user instance
@@ -300,11 +301,11 @@ class AuthController extends Controller
     {
         $request->validate(['email' => 'required|email']);
 
-        $status = Illuminate\Support\Facades\Password::sendResetLink(
+        $status = PasswordFacade::sendResetLink(
             $request->only('email')
         );
 
-        return $status === Illuminate\Support\Facades\Password::RESET_LINK_SENT
+        return $status === PasswordFacade::RESET_LINK_SENT
                     ? response()->json(['message' => __($status)], 200)
                     : response()->json(['message' => __($status)], 400);
     }
@@ -314,10 +315,14 @@ class AuthController extends Controller
         $request->validate([
             'token' => 'required',
             'email' => 'required|email',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => [
+            'required', 
+            'confirmed', 
+            PasswordRule::min(8)->mixedCase()->numbers()->symbols()
+        ],
         ]);
 
-        $status = Illuminate\Support\Facades\Password::reset(
+        $status = PasswordFacade::broker()->reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function ($user, $password) {
                 $user->forceFill([
@@ -329,7 +334,7 @@ class AuthController extends Controller
             }
         );
 
-        return $status === Illuminate\Support\Facades\Password::PASSWORD_RESET
+        return $status === PasswordFacade::PASSWORD_RESET
                     ? response()->json(['message' => __($status)], 200)
                     : response()->json(['message' => __($status)], 400);
     }
