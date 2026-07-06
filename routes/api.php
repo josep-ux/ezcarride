@@ -14,6 +14,8 @@ Route::prefix('v1')->group(function () {
     Route::post('/driver/register', [AuthController::class, 'register']);
     Route::post('/rider/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/forgot-password', [AuthController::class, 'sendResetLinkEmail']);
+    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 });
 //you must login to use any of this end points here
 
