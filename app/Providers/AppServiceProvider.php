@@ -22,7 +22,7 @@ class AppServiceProvider extends ServiceProvider
     {
          ResetPassword::createUrlUsing(function (object $notifiable, string $token) {
         // Point this directly to your frontend password reset page
-        return 'https://ezcarride-ng-mainnng-ikqe9v.laravel.cloud>getEmailForPasswordReset()';
+        return 'https://ezcarride-ng-mainnng-ikqe9v.laravel.cloud>getEmailForPasswordReset();
     });
 
     }
