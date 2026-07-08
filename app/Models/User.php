@@ -39,19 +39,22 @@ class User extends Authenticatable
         return $this->hasMany(Trip::class,'user_id');
     }
 
-    public function sendPasswordResetNotification($token)
-{
+    public function sendPasswordResetNotification($token){
     // Modify this URL to point directly to your frontend platform route
     $frontendUrl = "https://ezcarride-ng-mainnng-ikqe9v.laravel.cloud/v1{$token}&email={$this->email}";
 
     $this->notify(new class($frontendUrl) extends \Illuminate\Notifications\Notification {
         protected $url;
         
-        public function __construct($url) { $this->url = $url; }
+    public function __construct($url) {
+        $this->url = $url;
+     }
         
-        public function via($notifiable) { return ['mail']; }
+    public function via($notifiable) {
+         return ['mail']; 
+    }
         
-        public function toMail($notifiable) {
+    public function toMail($notifiable) {
             return (new \Illuminate\Notifications\Messages\MailMessage)
                 ->line('You are receiving this email because we received a password reset request for your account.')
                 ->action('Reset Password', $this->url)
