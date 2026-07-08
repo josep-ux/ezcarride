@@ -219,18 +219,18 @@ class AuthController extends Controller
     // change image or update image
     public function changeImage(Request $request){
          $validator = Validator::make($request->all(), [
-            'image' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:2048', // Max size 2MB
+            'profile_image' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:2048', // Max size 2MB
         ]);
             if ($validator->fails()) {
                 return response()->json(['errors' => $validator->errors()], 422);
             }
             $user = $request->user(); // Get the authenticated user
-            if ($request->hasFile('image')) {
-                $file = $request->file('image');
+            if ($request->hasFile('profile_image')) {
+                $file = $request->file('profile_image');
                 $filename = time() . '_' . $file->getClientOriginalName();
                 $filePath = $file->storeAs('public/images', $filename);
                 // Update user's image path in the database
-                $user->update(['image' => $filename]);
+                $user->update(['profile_image' => $filename]);
                 return response()->json([
                     'success' => true,
                     'message' => 'Image updated successfully.',
@@ -272,18 +272,18 @@ class AuthController extends Controller
 
     public function changeImageDriver(Request $request){
          $validator = Validator::make($request->all(), [
-            'image' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:2048', // Max size 2MB
+            'profile_image' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:2048', // Max size 2MB
         ]);
             if ($validator->fails()) {
                 return response()->json(['errors' => $validator->errors()], 422);
             }
             $user = $request->user(); // Get the authenticated user
-            if ($request->hasFile('image')) {
-                $file = $request->file('image');
+            if ($request->hasFile('profile_image')) {
+                $file = $request->file('profile_image');
                 $filename = time() . '_' . $file->getClientOriginalName();
                 $filePath = $file->storeAs('public/images', $filename);
                 // Update user's image path in the database
-                $user->update(['image' => $filename]);
+                $user->update(['profile_image' => $filename]);
                 return response()->json([
                     'success' => true,
                     'message' => 'Image updated successfully.',
