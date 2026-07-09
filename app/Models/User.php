@@ -62,7 +62,7 @@ class User extends Authenticatable
                 return (new \Illuminate\Notifications\Messages\MailMessage)
                     ->subject('Your Password Reset Code')
                     ->line('You are receiving this email because we received a password reset request for your mobile account.')
-                    ->heading('Your Reset Code:')
+                    ->line('Your Reset Code:')
                     ->line($this->pin)
                     ->line('Enter this 6-digit code in your mobile app to securely reset your password.')
                     ->line('If you did not request this, please ignore this email.');
