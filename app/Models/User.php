@@ -40,25 +40,29 @@ class User extends Authenticatable
     }
 
     public function sendPasswordResetNotification($token){
-    // Modify this URL to point directly to your frontend platform route
-    $frontendUrl = "https://ezcarride-ng-mainnng-ikqe9v.laravel.cloud/api/v1/reset-password?token={$token}&email={$this->email}";
-    $this->notify(new class($frontendUrl) extends \Illuminate\Notifications\Notification {
-        protected $url;
+    // Convert the long alphanumeric Laravel token into a secure 6-digit numeric PIN
+    $pinCode = crc32($token) % 1000000;
+    $pinCode = str_pad(abs($pinCode), 6, '0', STR_PAD_LEFT);
 
-    public function __construct($url) {
-        $this->url = $url;
-     }
+    $this->notify(new class($pinCode) extends \Illuminate\Notifications\Notification {
+        protected $pin;
 
-    public function via($notifiable) {
-         return ['mail'];
-    }
+        public function __construct($pin) {
+            $this->pin = $pin;
+        }
 
-    public function toMail($notifiable) {
+        public function via($notifiable) {
+            return ['mail'];
+        }
+
+        public function toMail($notifiable) {
             return (new \Illuminate\Notifications\Messages\MailMessage)
-                ->subject('Reset Your Password') // 👈 Add this line to explicitly set the subject
-                ->line('You are receiving this email because we received a password reset request for your account.')
-                ->action('Reset Password', $this->url)
-                ->line('If you did not request a password reset, no further action is required.');
+                ->subject('Your Password Reset Code')
+                ->line('You are receiving this email because we received a password reset request for your mobile account.')
+                ->heading('Your Reset Code:')
+                ->line($this->pin)
+                ->line('Enter this 6-digit code in your mobile app to securely reset your password.')
+                ->line('If you did not request this, please ignore this email.');
         }
     });
 }

@@ -311,32 +311,39 @@ class AuthController extends Controller
     }
 
     public function resetPassword(Request $request)
-    {
-        $request->validate([
-            'token' => 'required',
-            'email' => 'required|email',
-            'password' => [
-            'required', 
-            'confirmed', 
-            PasswordRule::min(8)->mixedCase()->numbers()->symbols()
-        ],
-        ]);
+{
+    $request->validate([
+        'email' => 'required|email|exists:users,email',
+        'code' => 'required|string|min:6|max:6',
+        'password' => 'required|string|min:8|confirmed',
+    ]);
 
-        $status = PasswordFacade::broker()->reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
-            function ($user, $password) {
-                $user->forceFill([
-                    'password' => Hash::make($password)
-                ])->save();
+    // 1. Retrieve the token record from the database table
+    $record = DB::table('password_reset_tokens')
+                ->where('email', $request->email)
+                ->first();
 
-                $user->setRememberToken(Str::random(60));
-                event(new PasswordReset($user));
-            }
-        );
-
-        return $status === PasswordFacade::PASSWORD_RESET
-                    ? response()->json(['message' => __($status)], 200)
-                    : response()->json(['message' => __($status)], 400);
+    if (!$record) {
+        return response()->json(['message' => 'Invalid request or token expired.'], 400);
     }
+
+    // 2. Regenerate your 6-digit verification logic to check if it matches the token on file
+    $expectedPin = crc32($record->token) % 1000000;
+    $expectedPin = str_pad(abs($expectedPin), 6, '0', STR_PAD_LEFT);
+
+    if ($request->code !== $expectedPin) {
+        return response()->json(['message' => 'The reset code provided is incorrect.'], 400);
+    }
+
+    // 3. Update the user password
+    $user = User::where('email', $request->email)->first();
+    $user->password = Hash::make($request->password);
+    $user->save();
+
+    // 4. Delete the used token record
+    DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+
+    return response()->json(['message' => 'Password reset successful! You can now log in.']);
+}
 
 }
