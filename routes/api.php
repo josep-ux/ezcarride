@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\RiderController;
 use GuzzleHttp\Psr7\Rfc7230;
 use Symfony\Component\Routing\RouterInterface;
 
+
 // Public Routes
 Route::prefix('v1')->group(function () {
     Route::post('/driver/register', [AuthController::class, 'register']);
