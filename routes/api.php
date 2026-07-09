@@ -10,6 +10,12 @@ use GuzzleHttp\Psr7\Rfc7230;
 use Symfony\Component\Routing\RouterInterface;
 
 
+Route::get('/test-server-ip', function () {
+    // Hits an external lookup service to reveal your server's true outgoing IP
+    return response()->json([
+        'outgoing_ip' => Http::get('https://ifconfig.me')->body()
+    ]);
+});
 // Public Routes
 Route::prefix('v1')->group(function () {
     Route::post('/driver/register', [AuthController::class, 'register']);
