@@ -41,8 +41,7 @@ class User extends Authenticatable
 
     public function sendPasswordResetNotification($token){
     // Modify this URL to point directly to your frontend platform route
-    $frontendUrl = "https://ezcarride-ng-mainnng-ikqe9v.laravel.cloud/v1/{$token}&email={$this->email}";
-
+    $frontendUrl = "https://ezcarride-ng-mainnng-ikqe9v.laravel.cloud/api/v1/reset-password?token={$token}&email={$this->email}";
     $this->notify(new class($frontendUrl) extends \Illuminate\Notifications\Notification {
         protected $url;
 
