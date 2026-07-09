@@ -15,6 +15,7 @@ use Illuminate\Auth\Notifications\ResetPassword as ResetPasswordNotification;
 #[Fillable(['name', 'email', 'password','user_type','country','dob',
 'phone_number','address','city','state','zip_code','license_number','vehicle_type','vehicle_model','vehicle_color','vehicle_plate_number','bank_name','bank_account_number','bank_account_name','payment_method','stripe_account_id','paypal_email','profile_image','status','curr_lat','curr_long'])]
 #[Hidden(['password', 'remember_token'])]
+
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -44,7 +45,7 @@ class User extends Authenticatable
     $pinCode = crc32($token) % 1000000;
     $pinCode = str_pad(abs($pinCode), 6, '0', STR_PAD_LEFT);
 
-    $this->notify(new class($pinCode) extends \Illuminate\Notifications\Notification {
+    $this->notify(new class($pincode) extends \Illuminate\Notification\Notification {
         protected $pin;
 
         public function __construct($pin) {
@@ -65,5 +66,5 @@ class User extends Authenticatable
                 ->line('If you did not request this, please ignore this email.');
         }
     });
-}
+ }
 }
