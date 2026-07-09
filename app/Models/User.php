@@ -55,6 +55,7 @@ class User extends Authenticatable
 
     public function toMail($notifiable) {
             return (new \Illuminate\Notifications\Messages\MailMessage)
+                ->subject('Reset Your Password') // 👈 Add this line to explicitly set the subject
                 ->line('You are receiving this email because we received a password reset request for your account.')
                 ->action('Reset Password', $this->url)
                 ->line('If you did not request a password reset, no further action is required.');
