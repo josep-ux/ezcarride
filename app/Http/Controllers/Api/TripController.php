@@ -22,56 +22,71 @@ class TripController extends Controller
     {
 
     try{
-        
+
         $request->validate([
-            'pickup_latitude' => 'required',
-            'pickup_longitude' => 'required',
-            'dropoff_latitude' => 'required',
-            'dropoff_longitude' => 'required',
-        ]);
+        'pickup_latitude' => 'required',
+        'pickup_longitude' => 'required',
+        'dropoff_latitude' => 'required',
+        'dropoff_longitude' => 'required',
+    ]);
 
-        $apiKey = config('services.google.maps_key'); 
-        $apiUrl = "https://googleapis.com";
-
-        // Call Google without verifying local server SSL handshakes
-        $response = Http::withoutVerifying()->get($apiUrl, [
-            'origins' => "{$request->pickup_latitude},{$request->pickup_longitude}",
-            'destinations' => "{$request->dropoff_latitude},{$request->dropoff_longitude}",
-            'key' => $apiKey
-        ]);
-
-        $data = $response->json();
-
-        // Check if the required nested elements array keys exist before using them
-        if (
-            $response->failed() || 
-            empty($data['status']) || 
-            $data['status'] !== 'OK' || 
-            empty($data['rows'][0]['elements'][0]['status']) || 
-            $data['rows'][0]['elements'][0]['status'] !== 'OK'
-        ) {
-            Log::error('Google Distance Matrix API Failure Logged', ['response' => $data]);
-            
-            return response()->json([
-                'status' => 'Google API request failed or returned invalid layout.',
-                'api_key_loaded' => $apiKey ? 'Yes' : 'No',
-                'http_status_returned' => $response->status(),
-                'google_top_status' => $data['status'] ?? 'NO_RESPONSE_BODY',
-                'element_status' => $data['rows'][0]['elements'][0]['status'] ?? 'NO_ELEMENTS',
-                'raw_payload' => $data
-            ], 422);
-        }
+    $apiKey = config('services.google.maps_key'); 
     
-        // Calculate trip pricing details safely
-        $distanceInMeters = $data['rows'][0]['elements'][0]['distance']['value'];
-        $distanceInKm = $distanceInMeters / 1000;
-        $estimatedPrice = 5.00 + ($distanceInKm * 1.50); 
+    // Construct request coordinates
+    $origins = urlencode("{$request->pickup_latitude},{$request->pickup_longitude}");
+    $destinations = urlencode("{$request->dropoff_latitude},{$request->dropoff_longitude}");
+    
+    // Build direct secure endpoint URL string 
+    $apiUrl = "https://googleapis.com{$origins}&destinations={$destinations}&key={$apiKey}";
 
+    // Force context options to ignore local server SSL issues safely
+    $contextOptions = [
+        "ssl" => [
+            "verify_peer" => false,
+            "verify_peer_name" => false,
+        ]
+    ];
+
+    // Execute direct network query stream bypassing internal Laravel Guzzle interceptors
+    $responseBody = @file_get_contents($apiUrl, false, stream_context_create($contextOptions));
+
+    if ($responseBody === false) {
         return response()->json([
-            'distance' => round($distanceInKm, 2),
-            'price' => round($estimatedPrice, 2)
-        ]);
+            'error' => 'Direct server communication link to Google broke down.',
+            'tip' => 'Ensure your Google Cloud console key remains active.'
+        ], 502);
+    }
 
+    $data = json_decode($responseBody, true);
+
+    // Secure array validation for rows and elements
+    if (
+        empty($data['status']) || 
+        $data['status'] !== 'OK' || 
+        empty($data['rows'][0]['elements'][0]['status']) || 
+        $data['rows'][0]['elements'][0]['status'] !== 'OK'
+    ) {
+        return response()->json([
+            'status' => 'Google verified a billing/credential restriction flag.',
+            'google_top_status' => $data['status'] ?? 'EMPTY_RESPONSE',
+            'element_status' => $data['rows'][0]['elements'][0]['status'] ?? 'EMPTY_ELEMENTS',
+            'google_error_msg' => $data['error_message'] ?? 'Verify if Google Distance Matrix API is enabled.',
+            'raw_payload' => $data
+        ], 422);
+    }
+
+    // Safely extract validated distance payload metrics
+    $distanceInMeters = $data['rows'][0]['elements'][0]['distance']['value'];
+    $distanceInKm = $distanceInMeters / 1000;
+    
+    // Ride Fare Matrix Calculation: Base Fare ($5.00) + ($1.50 per KM)
+    $estimatedPrice = 5.00 + ($distanceInKm * 1.50); 
+
+    return response()->json([
+        'distance' => round($distanceInKm, 2),
+        'price' => round($estimatedPrice, 2)
+    ]);
+    
         } catch (\Throwable $e) {
             // Capture any hidden system crash reasons safely
             return response()->json([
