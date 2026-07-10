@@ -20,8 +20,7 @@ class TripController extends Controller
     
     public function estimateTrip(Request $request) 
     {
-     
-    $request->validate([
+     $request->validate([
         'pickup_latitude' => 'required',
         'pickup_longitude' => 'required',
         'dropoff_latitude' => 'required',
@@ -29,6 +28,8 @@ class TripController extends Controller
     ]);
 
     $apiKey = config('services.google.maps_key'); 
+    
+    // EXPLICIT ENDPOINT: Do not use the base googleapis.com root domain
     $apiUrl = "https://googleapis.com";
 
     $response = Http::get($apiUrl, [
@@ -37,31 +38,41 @@ class TripController extends Controller
         'key' => $apiKey
     ]);
 
+    // Handle network or connection failures immediately
+    if ($response->failed()) {
+        return response()->json([
+            'error' => 'Network request to Google Maps failed.',
+            'http_status' => $response->status(),
+            'api_url_attempted' => $apiUrl
+        ], 502);
+    }
+
     $data = $response->json();
 
-    // FIXED: Google's JSON structure uses indexed arrays [0] for rows and elements
-    if (
-        $response->failed() || 
-        empty($data['rows'][0]['elements'][0]['status']) || 
-        $data['rows'][0]['elements'][0]['status'] !== 'OK'
-    ) {
-        Log::error('Google Distance Matrix API Error', ['response' => $data]);
-        
+    // Verify Google's top-level response payload status first
+    if (!isset($data['status']) || $data['status'] !== 'OK') {
         return response()->json([
-            'error' => 'Could not calculate trip distance.',
-            'api_key_used' => $apiKey ? 'Key is loaded' : 'Key is NULL/Missing',
-            'http_status' => $response->status(),
-            'google_top_status' => $data['status'] ?? 'NOT_RETURNED',
-            'element_status' => $data['rows'][0]['elements'][0]['status'] ?? 'NOT_RETURNED',
-            'raw_google_payload' => $data
+            'error' => 'Google API returned a top-level error.',
+            'google_status' => $data['status'] ?? 'UNKNOWN',
+            'error_message' => $data['error_message'] ?? 'No message provided.',
+            'raw_payload' => $data
         ], 422);
     }
 
-    // FIXED: Accessing distance using index [0][0]
+    // Verify the inner routing elements container layout exists safely
+    if (empty($data['rows'][0]['elements'][0]['status']) || $data['rows'][0]['elements'][0]['status'] !== 'OK') {
+        return response()->json([
+            'error' => 'Could not calculate distance between these coordinates.',
+            'element_status' => $data['rows'][0]['elements'][0]['status'] ?? 'MISSING',
+            'raw_payload' => $data
+        ], 422);
+    }
+
+    // Safely pull metrics once validation verification passes
     $distanceInMeters = $data['rows'][0]['elements'][0]['distance']['value'];
     $distanceInKm = $distanceInMeters / 1000;
     
-    // Pricing: Base Fare ($5.00) + ($1.50 per KM)
+    // Ride Metric Formula: Base Fare ($5.00) + ($1.50 per KM)
     $estimatedPrice = 5.00 + ($distanceInKm * 1.50); 
 
     return response()->json([
