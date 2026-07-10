@@ -17,8 +17,7 @@ class TripController extends Controller
         $trips = $request->user()->trips()->get();
         return response()->json($trips, 200);
     }
-    use Illuminate\Support\Facades\Http;
-
+    
     public function estimateTrip(Request $request) 
     {
         $request->validate([
