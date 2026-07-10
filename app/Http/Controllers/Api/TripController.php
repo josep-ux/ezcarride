@@ -20,61 +20,43 @@ class TripController extends Controller
     
     public function estimateTrip(Request $request) 
     {
-     // 1. Ensure incoming inputs exist
-    $request->validate([
-        'pickup_latitude' => 'required',
-        'pickup_longitude' => 'required',
-        'dropoff_latitude' => 'required',
-        'dropoff_longitude' => 'required',
-    ]);
+      try {
+            // Absolute path lookup to avoid unimported Facade crashes
+            $apiKey = config('services.google.maps_key'); 
+            $apiUrl = "https://googleapis.com";
 
-    // 2. Load API key and define the clean Google maps URL
-    $apiKey = config('services.google.maps_key'); 
-    $apiUrl = "https://googleapis.com";
+            // Grab coordinates safely without triggering internal request validations
+            $pickupLat = $request->input('pickup_latitude', '6.6058');
+            $pickupLng = $request->input('pickup_longitude', '3.3491');
+            $dropoffLat = $request->input('dropoff_latitude', '6.5244');
+            $dropoffLng = $request->input('dropoff_longitude', '3.3792');
 
-    // 3. Dispatch out the HTTP request payload
-    $response = Http::get($apiUrl, [
-        'origins' => "{$request->pickup_latitude},{$request->pickup_longitude}",
-        'destinations' => "{$request->dropoff_latitude},{$request->dropoff_longitude}",
-        'key' => $apiKey
-    ]);
+            // Fire using absolute namespace reference
+            $response = \Illuminate\Support\Facades\Http::get($apiUrl, [
+                'origins' => "{$pickupLat},{$pickupLng}",
+                'destinations' => "{$dropoffLat},{$dropoffLng}",
+                'key' => $apiKey
+            ]);
 
-    // 4. Safely handle direct network dropouts
-    if ($response->failed()) {
-        Log::error('Google Maps API Network Call Failed');
-        return response()->json(['error' => 'Network request to Google failed.'], 502);
-    }
+            $data = $response->json();
 
-    $data = $response->json();
+            // Direct output check to stop array key crashes
+            return response()->json([
+                'diagnostic_checkpoint' => 'Connected to controller successfully!',
+                'laravel_http_status' => $response->status(),
+                'api_key_configured' => $apiKey ? 'Yes' : 'No',
+                'raw_payload' => $data
+            ]);
 
-    // 5. BULLETPROOF FAIL-SAFE: Check nesting depths before reading indices
-    if (
-        empty($data['status']) || 
-        $data['status'] !== 'OK' || 
-        empty($data['rows'][0]['elements'][0]['status']) || 
-        $data['rows'][0]['elements'][0]['status'] !== 'OK'
-    ) {
-        Log::error('Google API Error or Invalid Route Coordinates', ['response' => $data]);
-        
-        return response()->json([
-            'error' => 'Could not calculate trip distance.',
-            'google_status' => $data['status'] ?? 'MISSING_TOP_STATUS',
-            'element_status' => $data['rows'][0]['elements'][0]['status'] ?? 'MISSING_ELEMENT_STATUS',
-            'error_message' => $data['error_message'] ?? 'Check your deployment billing details or API key restrictions.'
-        ], 422);
-    }
-
-    // 6. Safely calculate distance parameters now that arrays are verified
-    $distanceInMeters = $data['rows'][0]['elements'][0]['distance']['value'];
-    $distanceInKm = $distanceInMeters / 1000;
-    
-    // Simple Pricing Formula: Base Fare ($5.00) + ($1.50 per KM)
-    $estimatedPrice = 5.00 + ($distanceInKm * 1.50); 
-
-    return response()->json([
-        'distance' => round($distanceInKm, 2),
-        'price' => round($estimatedPrice, 2)
-    ]);
+        } catch (\Throwable $e) {
+            // Capture any hidden system crash reasons safely
+            return response()->json([
+                'diagnostic_checkpoint' => 'System crashed inside code execution.',
+                'exception_class' => get_class($e),
+                'error_message' => $e->getMessage(),
+                'line' => $e->getLine()
+            ], 500);
+        }
 }
 
 
