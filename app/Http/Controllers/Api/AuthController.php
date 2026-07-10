@@ -335,21 +335,29 @@ class AuthController extends Controller
     // 1. Retrieve the token record from the database table
     $record = DB::table('password_reset_tokens')->where('email', $request->email)->first();
 
-    // 2. Verify the 6-digit code securely using Hash::check
-    if (!$record || !Hash::check($request->code, $record->token)) {
-        return response()->json(['message' => 'The reset code provided is incorrect or expired.'], 400);
+    if (!$record) {
+        return response()->json(['message' => 'No reset request found for this email.'], 404);
     }
 
-    // [OLD CRC32 LOGIC REMOVED FROM HERE]
+    // 2. Check if the code has expired (e.g., older than 15 minutes)
+    $expiresAt = \Carbon\Carbon::parse($record->created_at)->addMinutes(15);
+    if (\Carbon\Carbon::now()->isAfter($expiresAt)) {
+        return response()->json(['message' => 'The reset code has expired. Please request a new one.'], 400);
+    }
 
-    // 3. Update the user password
+    // 3. Verify the 6-digit code securely using Hash::check
+    if (!Hash::check($request->code, $record->token)) {
+        return response()->json(['message' => 'The reset code provided is incorrect.'], 400);
+    }
+
+    // 4. Update the user password
     $user = User::where('email', $request->email)->first();
     if ($user) {
         $user->password = Hash::make($request->password);
         $user->save();
     }
 
-    // 4. Delete the used token record
+    // 5. Delete the used token record
     DB::table('password_reset_tokens')->where('email', $request->email)->delete();
 
     return response()->json(['message' => 'Password reset successful! You can now log in.']);
