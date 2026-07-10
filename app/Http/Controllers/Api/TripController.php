@@ -20,6 +20,9 @@ class TripController extends Controller
 
     public function estimateTrip(Request $request) 
     {
+
+    try{
+        
         $request->validate([
             'pickup_latitude' => 'required',
             'pickup_longitude' => 'required',
