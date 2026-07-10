@@ -19,45 +19,45 @@ class TripController extends Controller
     }
     use Illuminate\Support\Facades\Http;
 
-public function estimateTrip(Request $request) 
-{
-     $request->validate([
-        'pickup_latitude' => 'required',
-        'pickup_longitude' => 'required',
-        'dropoff_latitude' => 'required',
-        'dropoff_longitude' => 'required',
-    ]);
+    public function estimateTrip(Request $request) 
+    {
+        $request->validate([
+            'pickup_latitude' => 'required',
+            'pickup_longitude' => 'required',
+            'dropoff_latitude' => 'required',
+            'dropoff_longitude' => 'required',
+        ]);
 
-    // 2. Safely grab your API key from your .env file via config
-    $apiKey = config('services.google.maps_key'); 
+        // 2. Safely grab your API key from your .env file via config
+        $apiKey = config('services.google.maps_key'); 
 
-    // 3. Hit the correct Google Distance Matrix endpoint
-    $response = Http::get("https://googleapis.com", [
-        'origins' => "{$request->pickup_latitude},{$request->pickup_longitude}",
-        'destinations' => "{$request->dropoff_latitude},{$request->dropoff_longitude}",
-        'key' => $apiKey
-    ]);
+        // 3. Hit the correct Google Distance Matrix endpoint
+        $response = Http::get("https://googleapis.com", [
+            'origins' => "{$request->pickup_latitude},{$request->pickup_longitude}",
+            'destinations' => "{$request->dropoff_latitude},{$request->dropoff_longitude}",
+            'key' => $apiKey
+        ]);
 
-    $data = $response->json();
+        $data = $response->json();
 
-    // 4. Fail-safe: Check if the API request was successful and has valid element rows
-    if (
-        $response->failed() || 
-        empty($data['rows'][0]['elements'][0]['distance']['value']) || 
-        $data['rows'][0]['elements'][0]['status'] !== 'OK'
-    ) {
-        Log::error('Google Distance Matrix API Error', ['response' => $data]);
-        return response()->json(['error' => 'Could not calculate trip distance.'], 422);
-    }
+        // 4. Fail-safe: Check if the API request was successful and has valid element rows
+        if (
+            $response->failed() || 
+            empty($data['rows'][0]['elements'][0]['distance']['value']) || 
+            $data['rows'][0]['elements'][0]['status'] !== 'OK'
+        ) {
+            Log::error('Google Distance Matrix API Error', ['response' => $data]);
+            return response()->json(['error' => 'Could not calculate trip distance.'], 422);
+        }
     
-    // 5. Calculate and return values
-    $distanceInKm = $data['rows'][0]['elements'][0]['distance']['value'] / 1000;
-    $estimatedPrice = 5.00 + ($distanceInKm * 1.50); 
+        // 5. Calculate and return values
+        $distanceInKm = $data['rows'][0]['elements'][0]['distance']['value'] / 1000;
+        $estimatedPrice = 5.00 + ($distanceInKm * 1.50); 
 
-    return response()->json([
-        'distance' => round($distanceInKm, 2),
-        'price' => round($estimatedPrice, 2)
-    ]);
+        return response()->json([
+            'distance' => round($distanceInKm, 2),
+            'price' => round($estimatedPrice, 2)
+        ]);
 
 }
 
