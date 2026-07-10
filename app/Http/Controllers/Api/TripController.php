@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use App\Models\Trip;
 use App\Events\RideRequested;
 use App\Jobs\DispatchDriverJob;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class TripController extends Controller
 {
