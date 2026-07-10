@@ -10,6 +10,7 @@ use App\Jobs\DispatchDriverJob;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Models\Ride;
+use Carbon\Carbon;
 
 class TripController extends Controller
 {
@@ -163,6 +164,108 @@ class TripController extends Controller
             'error'   => $e->getMessage()
         ], 500);
     }
+
+    /**
+ * Scan for unassigned pending rides within a 10km radius of the driver.
+ */
+public function availableRides(Request $request)
+{
+    $request->validate([
+        'driver_latitude'  => 'required|numeric',
+        'driver_longitude' => 'required|numeric',
+    ]);
+
+    $driverLat = doubleval($request->driver_latitude);
+    $driverLng = doubleval($request->driver_longitude);
+    $searchRadiusKm = 10.0; // Distance filter bounds
+
+    try {
+        // Fetch only unassigned pending rides created recently
+        $pendingRides = Ride::where('status', 'pending')
+            ->whereNull('driver_id')
+            ->where('created_at', '>=', Carbon::now()->subMinutes(30))
+            ->get();
+
+        $availableForDriver = [];
+
+        foreach ($pendingRides as $ride) {
+            // Compute straight line distance from driver to pickup spot using local Haversine
+            $earthRadius = 6371;
+            $dLat = deg2rad(doubleval($ride->pickup_lat) - $driverLat);
+            $dLon = deg2rad(doubleval($ride->pickup_long) - $driverLng);
+
+            $a = sin($dLat / 2) * sin($dLat / 2) +
+                 cos(deg2rad($driverLat)) * cos(deg2rad(doubleval($ride->pickup_lat))) *
+                 sin($dLon / 2) * sin($dLon / 2);
+                 
+            $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+            $distanceToPickupKm = $earthRadius * $c;
+
+            // If the pickup location is within the radius, add it to the driver's list
+            if ($distanceToPickupKm <= $searchRadiusKm) {
+                $ride->distance_to_driver_km = round($distanceToPickupKm, 2);
+                $availableForDriver[] = $ride;
+            }
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'count'  => count($availableForDriver),
+            'rides'  => $availableForDriver
+        ], 200);
+
+    } catch (\Throwable $e) {
+        return response()->json([
+            'status'  => 'error',
+            'message' => 'Failed to fetch available rides.',
+            'error'   => $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Allow a driver to accept a pending ride.
+ */
+public function acceptRide(Request $request, $id)
+{
+    try {
+        // Find the ride record
+        $ride = Ride::findOrFail($id);
+
+        // Fail-safe: Prevent another driver from taking it if it's already assigned
+        if ($ride->status !== 'pending' || !is_null($ride->driver_id)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'This ride has already been accepted by another driver.'
+            ], 422);
+        }
+
+        // Assign the driver and update the lifecycle milestones
+        $ride->update([
+            'driver_id'   => $request->user()->id, // Active authenticated driver ID
+            'status'      => 'accepted',
+            'accepted_at' => Carbon::now()
+        ]);
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'You have successfully accepted this ride request!',
+            'ride'    => $ride
+        ], 200);
+
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        return response()->json([
+            'status'  => 'error',
+            'message' => 'Ride request not found.'
+        ], 404);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'status'  => 'error',
+            'message' => 'An error occurred while accepting the ride.',
+            'error'   => $e->getMessage()
+        ], 500);
+    }
+}
 }
 
 
