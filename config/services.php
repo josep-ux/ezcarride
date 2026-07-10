@@ -41,4 +41,9 @@ return [
         'endpoint' => env('MAILGUN_ENDPOINT', 'api.mailgun.net'),
 ],
 
+    'google' => [
+    'maps_key' => env('GOOGLE_MAPS_KEY'),
+],
+
+
 ];
