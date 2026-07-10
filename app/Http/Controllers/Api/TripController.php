@@ -139,7 +139,7 @@ class TripController extends Controller
             'status'  => 'success',
             'message' => 'Ride booking requested successfully.',
             'ride'    => $ride
-        ], 21);
+        ], 201);
 
     } catch (\Throwable $e) {
         Log::error('Ride Creation Database Crash', ['error' => $e->getMessage()]);
