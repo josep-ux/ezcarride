@@ -90,6 +90,7 @@ return new class extends Migration
             $table->decimal('dropoff_long', 11, 8);
             $table->string('pickup_address');
             $table->string('dropoff_address');
+            $table->decimal('fare')->default(0.00);
 
 
             // Metadata variables
