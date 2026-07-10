@@ -270,7 +270,4 @@ public function acceptRide(Request $request, $id)
 }
 
 
-   
-   
-}
 
