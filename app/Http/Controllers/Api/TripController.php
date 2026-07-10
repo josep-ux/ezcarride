@@ -40,14 +40,22 @@ class TripController extends Controller
         $data = $response->json();
 
         // 4. Fail-safe: Check if the API request was successful and has valid element rows
-        if (
-            $response->failed() || 
-            empty($data['rows'][0]['elements'][0]['distance']['value']) || 
-            $data['rows'][0]['elements'][0]['status'] !== 'OK'
-        ) {
-            Log::error('Google Distance Matrix API Error', ['response' => $data]);
-            return response()->json(['error' => 'Could not calculate trip distance.'], 422);
-        }
+        // Temporary debugging replacement inside estimateTrip()
+if (
+    $response->failed() || 
+    empty($data['rows'][0]['elements'][0]['distance']['value']) || 
+    $data['rows'][0]['elements'][0]['status'] !== 'OK'
+) {
+    Log::error('Google Distance Matrix API Error', ['response' => $data]);
+    
+    // This will output the EXACT reason Google is blocking you
+    return response()->json([
+        'error' => 'Could not calculate trip distance.',
+        'google_status' => $data['status'] ?? 'UNKNOWN_TOP_STATUS',
+        'element_status' => $data['rows'][0]['elements'][0]['status'] ?? 'NO_ELEMENT_STATUS',
+        'raw_google_message' => $data['error_message'] ?? 'No explicit error message returned.'
+    ], 422);
+}
     
         // 5. Calculate and return values
         $distanceInKm = $data['rows'][0]['elements'][0]['distance']['value'] / 1000;
