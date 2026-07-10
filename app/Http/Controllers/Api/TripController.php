@@ -21,65 +21,52 @@ class TripController extends Controller
     public function estimateTrip(Request $request) 
     {
       try {
-            // 1. Safe extraction of coordinates
-    $pickupLat = $request->input('pickup_latitude', '6.6058');
-    $pickupLng = $request->input('pickup_longitude', '3.3491');
+         // 1. Read coordinates, falling back to Lagos placeholders if inputs are empty
+    $pickupLat  = $request->input('pickup_latitude', '6.6058');
+    $pickupLng  = $request->input('pickup_longitude', '3.3491');
     $dropoffLat = $request->input('dropoff_latitude', '6.5244');
     $dropoffLng = $request->input('dropoff_longitude', '3.3792');
 
+    // 2. Fetch the Key
     $apiKey = config('services.google.maps_key'); 
-    
-    // 2. Build the query string directly
-    $queryParams = http_build_query([
-        'origins' => "{$pickupLat},{$pickupLng}",
+    $apiUrl = "https://googleapis.com";
+
+    // 3. Fire out the connection payload to Google
+    $response = \Illuminate\Support\Facades\Http::get($apiUrl, [
+        'origins'      => "{$pickupLat},{$pickupLng}",
         'destinations' => "{$dropoffLat},{$dropoffLng}",
-        'key' => $apiKey
+        'key'          => $apiKey
     ]);
-    
-    $url = "https://googleapis.com?" . $queryParams;
 
-    // 3. Execute using native PHP cURL to bypass Laravel's Http Interceptors/Mocks
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-    
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    $data = $response->json();
 
-    $data = json_decode($response, true);
-
-    // 4. Fail-safe verification for the real Google payload mapping
+    // 4. If Google complains about Billing, Keys, or Restrictions, catch it here cleanly
     if (
-        $httpCode !== 200 || 
+        $response->failed() || 
         empty($data['status']) || 
         $data['status'] !== 'OK' || 
         empty($data['rows'][0]['elements'][0]['status']) || 
         $data['rows'][0]['elements'][0]['status'] !== 'OK'
     ) {
         return response()->json([
-            'error' => 'Could not calculate trip distance.',
-            'network_http_status' => $httpCode,
-            'google_top_status' => $data['status'] ?? 'NOT_RETURNED',
-            'element_status' => $data['rows'][0]['elements'][0]['status'] ?? 'NOT_RETURNED',
-            'raw_google_payload' => $data
+            'status'            => 'Google API verification caught a restriction flag',
+            'api_key_loaded'    => $apiKey ? 'Yes (Key string is active)' : 'No (Configuration is returning blank/null)',
+            'google_top_status' => $data['status'] ?? 'NO_RESPONSE',
+            'element_status'    => $data['rows'][0]['elements'][0]['status'] ?? 'NO_ELEMENTS',
+            'google_error_msg'  => $data['error_message'] ?? 'No written feedback. Check for an active Cloud Billing account.',
+            'raw_payload'       => $data // Displays the raw API output
         ], 422);
     }
 
-    // 5. Calculate trip metrics securely
+    // 5. Successful metric calculations
     $distanceInMeters = $data['rows'][0]['elements'][0]['distance']['value'];
-    $distanceInKm = $distanceInMeters / 1000;
-    
-    // Simple Pricing Formula: Base Fare ($5.00) + ($1.50 per KM)
-    $estimatedPrice = 5.00 + ($distanceInKm * 1.50); 
+    $distanceInKm     = $distanceInMeters / 1000;
+    $estimatedPrice   = 5.00 + ($distanceInKm * 1.50); 
 
     return response()->json([
         'distance' => round($distanceInKm, 2),
-        'price' => round($estimatedPrice, 2)
+        'price'    => round($estimatedPrice, 2)
     ]);
-
         } catch (\Throwable $e) {
             // Capture any hidden system crash reasons safely
             return response()->json([
