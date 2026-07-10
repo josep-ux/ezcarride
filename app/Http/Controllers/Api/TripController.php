@@ -20,17 +20,15 @@ class TripController extends Controller
     
     public function estimateTrip(Request $request) 
     {
-     $request->validate([
+     
+    $request->validate([
         'pickup_latitude' => 'required',
         'pickup_longitude' => 'required',
         'dropoff_latitude' => 'required',
         'dropoff_longitude' => 'required',
     ]);
 
-    // Fetch the key safely from configuration matrix
     $apiKey = config('services.google.maps_key'); 
-
-    // FIXED: Cleaned up URL string entirely to prevent MalformedUriException
     $apiUrl = "https://googleapis.com";
 
     $response = Http::get($apiUrl, [
@@ -41,10 +39,10 @@ class TripController extends Controller
 
     $data = $response->json();
 
-    // Catch formatting errors safely without breaking execution flow
+    // FIXED: Google's JSON structure uses indexed arrays [0] for rows and elements
     if (
         $response->failed() || 
-        !isset($data['rows'][0]['elements'][0]['status']) || 
+        empty($data['rows'][0]['elements'][0]['status']) || 
         $data['rows'][0]['elements'][0]['status'] !== 'OK'
     ) {
         Log::error('Google Distance Matrix API Error', ['response' => $data]);
@@ -53,15 +51,17 @@ class TripController extends Controller
             'error' => 'Could not calculate trip distance.',
             'api_key_used' => $apiKey ? 'Key is loaded' : 'Key is NULL/Missing',
             'http_status' => $response->status(),
-            'raw_google_payload' => $data // Gives visibility to restrictions/billing issues
+            'google_top_status' => $data['status'] ?? 'NOT_RETURNED',
+            'element_status' => $data['rows'][0]['elements'][0]['status'] ?? 'NOT_RETURNED',
+            'raw_google_payload' => $data
         ], 422);
     }
 
-    // Secure numerical parsing matching Google matrix schema indexes [0][0]
-    $distanceInMeters = $data['rows'][0]['elements'][0]['distance']['value'] ?? 0;
+    // FIXED: Accessing distance using index [0][0]
+    $distanceInMeters = $data['rows'][0]['elements'][0]['distance']['value'];
     $distanceInKm = $distanceInMeters / 1000;
     
-    // Simple Pricing Formula: Base Fare ($5) + ($1.50 per KM)
+    // Pricing: Base Fare ($5.00) + ($1.50 per KM)
     $estimatedPrice = 5.00 + ($distanceInKm * 1.50); 
 
     return response()->json([
