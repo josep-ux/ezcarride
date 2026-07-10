@@ -305,55 +305,55 @@ class AuthController extends Controller
     public function sendResetCode(Request $request)
     {
           $request->validate(['email' => 'required|email|exists:users,email']);
-        // Inside your custom send code method instead of PasswordFacade:
-        $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        // $request->validate(['email' => 'required|email|exists:users,email']);
+    
+    $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-        DB::table('password_reset_tokens')->updateOrInsert(
-            ['email' => $request->email],
-            [
-                'token' => Hash::make($code), // Securely hash the 6-digit pin
-                'created_at' => Carbon::now()
-            ]
-         );
+    DB::table('password_reset_tokens')->updateOrInsert(
+        ['email' => $request->email],
+        [
+            'token' => Hash::make($code), 
+            'created_at' => \Carbon\Carbon::now()
+        ]
+    );
 
-    // Send $code to your user via your notification
     Notification::route('mail', $request->email)
-    ->notify(new SendNumericResetCodeNotification($code));
-     //Mail::to($request->email)->send(new SendNumericResetCodeNotification($code));
-        }
+        ->notify(new SendNumericResetCodeNotification($code));
+
+    return response()->json(['message' => 'Reset code has been sent to your email.']); 
+
+    }
 
     public function resetPassword(Request $request)
-{
-    $request->validate([
+    {
+        $request->validate([
         'email' => 'required|email|exists:users,email',
         'code' => 'required|string|min:6|max:6',
         'password' => 'required|string|min:8|confirmed',
     ]);
 
     // 1. Retrieve the token record from the database table
-    // Inside your resetPassword method:
-        $record = DB::table('password_reset_tokens')->where('email', $request->email)->first();
+    $record = DB::table('password_reset_tokens')->where('email', $request->email)->first();
 
-        if (!$record || !Hash::check($request->code, $record->token)) {
-            return response()->json(['message' => 'The reset code provided is incorrect or expired.'], 400);
-        }
-    // 2. Regenerate your 6-digit verification logic to check if it matches the token on file
-    $expectedPin = crc32($record->token) % 1000000;
-    $expectedPin = str_pad(abs($expectedPin), 6, '0', STR_PAD_LEFT);
-
-    if ($request->code !== $expectedPin) {
-        return response()->json(['message' => 'The reset code provided is incorrect.'], 400);
+    // 2. Verify the 6-digit code securely using Hash::check
+    if (!$record || !Hash::check($request->code, $record->token)) {
+        return response()->json(['message' => 'The reset code provided is incorrect or expired.'], 400);
     }
+
+    // [OLD CRC32 LOGIC REMOVED FROM HERE]
 
     // 3. Update the user password
     $user = User::where('email', $request->email)->first();
-    $user->password = Hash::make($request->password);
-    $user->save();
+    if ($user) {
+        $user->password = Hash::make($request->password);
+        $user->save();
+    }
 
     // 4. Delete the used token record
     DB::table('password_reset_tokens')->where('email', $request->email)->delete();
 
     return response()->json(['message' => 'Password reset successful! You can now log in.']);
+
 }
 
 }
