@@ -300,7 +300,7 @@ class AuthController extends Controller
 
     public function sendResetCode(Request $request)
     {
-        $request->validate(['email' => 'rrequired|email|exists:users,email']);
+        $request->validate(['email' => 'required|email|exists:users,email']);
 
         $status = PasswordFacade::sendResetLink(
             $request->only('email')
