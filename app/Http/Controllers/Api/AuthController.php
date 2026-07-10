@@ -340,10 +340,12 @@ class AuthController extends Controller
     }
 
     // 2. Check if the code has expired (e.g., older than 15 minutes)
-    $expiresAt = \Carbon\Carbon::parse($record->created_at)->addMinutes(15);
-    if (\Carbon\Carbon::now()->isAfter($expiresAt)) {
-        return response()->json(['message' => 'The reset code has expired. Please request a new one.'], 400);
-    }
+    // Using Carbon::setTestNow() or direct subMinutes avoids server/DB timezone drift
+$expirationThreshold = \Carbon\Carbon::now()->subMinutes(15);
+
+if (\Carbon\Carbon::parse($record->created_at)->isBefore($expirationThreshold)) {
+    return response()->json(['message' => 'The reset code has expired. Please request a new one.'], 400);
+}
 
     // 3. Verify the 6-digit code securely using Hash::check
     $userInputCode = (string) $request->code;
