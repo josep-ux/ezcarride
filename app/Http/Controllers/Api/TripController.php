@@ -21,82 +21,79 @@ class TripController extends Controller
     public function estimateTrip(Request $request) 
     {
 
-    try{
-
+     // 1. Validate inputs
         $request->validate([
-        'pickup_latitude' => 'required',
-        'pickup_longitude' => 'required',
-        'dropoff_latitude' => 'required',
-        'dropoff_longitude' => 'required',
-    ]);
+            'pickup_latitude' => 'required',
+            'pickup_longitude' => 'required',
+            'dropoff_latitude' => 'required',
+            'dropoff_longitude' => 'required',
+        ]);
 
-    $apiKey = config('services.google.maps_key'); 
-    
-    // Construct request coordinates
-    $origins = urlencode("{$request->pickup_latitude},{$request->pickup_longitude}");
-    $destinations = urlencode("{$request->dropoff_latitude},{$request->dropoff_longitude}");
-    
-    // Build direct secure endpoint URL string 
-    $apiUrl = "https://googleapis.com{$origins}&destinations={$destinations}&key={$apiKey}";
+        try {
+            $apiKey = config('services.google.maps_key'); 
+            
+            // Encode coordinates to stay secure in transit
+            $origins = urlencode("{$request->pickup_latitude},{$request->pickup_longitude}");
+            $destinations = urlencode("{$request->dropoff_latitude},{$request->dropoff_longitude}");
+            
+            $url = "https://googleapis.com{$origins}&destinations={$destinations}&key={$apiKey}";
 
-    // Force context options to ignore local server SSL issues safely
-    $contextOptions = [
-        "ssl" => [
-            "verify_peer" => false,
-            "verify_peer_name" => false,
-        ]
-    ];
+            // 2. Fire using native cURL stream to avoid Laravel Mock layers
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Prevents local server certificate dropouts
+            
+            $responseBody = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
 
-    // Execute direct network query stream bypassing internal Laravel Guzzle interceptors
-    $responseBody = @file_get_contents($apiUrl, false, stream_context_create($contextOptions));
+            if ($responseBody === false) {
+                return response()->json(['error' => 'cURL transport connection failure.'], 502);
+            }
 
-    if ($responseBody === false) {
-        return response()->json([
-            'error' => 'Direct server communication link to Google broke down.',
-            'tip' => 'Ensure your Google Cloud console key remains active.'
-        ], 502);
-    }
+            $data = json_decode($responseBody, true);
 
-    $data = json_decode($responseBody, true);
+            // 3. Robust index array checking to prevent any crash
+            if (
+                $httpCode !== 200 ||
+                empty($data['status']) || 
+                $data['status'] !== 'OK' || 
+                empty($data['rows'][0]['elements'][0]['status']) || 
+                $data['rows'][0]['elements'][0]['status'] !== 'OK'
+            ) {
+                return response()->json([
+                    'status' => 'Google verified a deployment restriction flag.',
+                    'network_http_code' => $httpCode,
+                    'google_top_status' => $data['status'] ?? 'EMPTY_BODY',
+                    'element_status' => $data['rows'][0]['elements'][0]['status'] ?? 'EMPTY_ELEMENTS',
+                    'error_message' => $data['error_message'] ?? 'Verify Distance Matrix API configuration in Google Console.',
+                    'raw_payload' => $data
+                ], 422);
+            }
 
-    // Secure array validation for rows and elements
-    if (
-        empty($data['status']) || 
-        $data['status'] !== 'OK' || 
-        empty($data['rows'][0]['elements'][0]['status']) || 
-        $data['rows'][0]['elements'][0]['status'] !== 'OK'
-    ) {
-        return response()->json([
-            'status' => 'Google verified a billing/credential restriction flag.',
-            'google_top_status' => $data['status'] ?? 'EMPTY_RESPONSE',
-            'element_status' => $data['rows'][0]['elements'][0]['status'] ?? 'EMPTY_ELEMENTS',
-            'google_error_msg' => $data['error_message'] ?? 'Verify if Google Distance Matrix API is enabled.',
-            'raw_payload' => $data
-        ], 422);
-    }
+            // 4. Safe metric extraction 
+            $distanceInMeters = $data['rows'][0]['elements'][0]['distance']['value'];
+            $distanceInKm = $distanceInMeters / 1000;
+            
+            // Pricing: Base Fare ($5.00) + ($1.50 per KM)
+            $estimatedPrice = 5.00 + ($distanceInKm * 1.50); 
 
-    // Safely extract validated distance payload metrics
-    $distanceInMeters = $data['rows'][0]['elements'][0]['distance']['value'];
-    $distanceInKm = $distanceInMeters / 1000;
-    
-    // Ride Fare Matrix Calculation: Base Fare ($5.00) + ($1.50 per KM)
-    $estimatedPrice = 5.00 + ($distanceInKm * 1.50); 
-
-    return response()->json([
-        'distance' => round($distanceInKm, 2),
-        'price' => round($estimatedPrice, 2)
-    ]);
-    
-        } catch (\Throwable $e) {
-            // Capture any hidden system crash reasons safely
             return response()->json([
-                'diagnostic_checkpoint' => 'System crashed inside code execution.',
-                'exception_class' => get_class($e),
-                'error_message' => $e->getMessage(),
+                'distance' => round($distanceInKm, 2),
+                'price' => round($estimatedPrice, 2)
+            ]);
+
+        } catch (\Throwable $e) {
+            // 5. Catch any unexpected structural array errors safely
+            return response()->json([
+                'error' => 'An internal script error was safely intercepted.',
+                'message' => $e->getMessage(),
                 'line' => $e->getLine()
             ], 500);
         }
-}
+    }
 
 
     public function show(Request $request, $id)
