@@ -32,12 +32,11 @@ class TripController extends Controller
     $apiUrl = "https://googleapis.com";
 
     // 3. Fire out the connection payload to Google
-    $response = \Illuminate\Support\Facades\Http::get($apiUrl, [
+    $response = Http::withoutVerifying()->get($apiUrl, [
         'origins'      => "{$pickupLat},{$pickupLng}",
         'destinations' => "{$dropoffLat},{$dropoffLng}",
         'key'          => $apiKey
     ]);
-
     $data = $response->json();
 
     // 4. If Google complains about Billing, Keys, or Restrictions, catch it here cleanly
