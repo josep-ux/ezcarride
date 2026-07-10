@@ -82,15 +82,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('passenger_id')->constrained('users');
             $table->foreignId('driver_id')->nullable()->constrained('users');
-
             // Statuses: pending, accepted, arriving, in_progress, completed, canceled
             $table->string('status', 30)->default('pending');
-
-            // Spatial fields for exact endpoints
-            // $table->point('pickup_location');
-            // $table->point('dropoff_location');
-            // $table->string('pickup_address');
-            // $table->string('dropoff_address');
             $table->decimal('pickup_lat', 10, 8);
             $table->decimal('pickup_long', 11, 8);
             $table->decimal('dropoff_lat', 10, 8);

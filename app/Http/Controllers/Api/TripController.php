@@ -20,13 +20,12 @@ class TripController extends Controller
     }
 
     public function estimateTrip(Request $request) 
-    {
-
-     // 1. Enforce validation on coordinates
+{
+    // 1. Enforce strict parameter verification matching your schema requirements
     $request->validate([
-        'pickup_latitude' => 'required|numeric',
+        'pickup_latitude'  => 'required|numeric',
         'pickup_longitude' => 'required|numeric',
-        'dropoff_latitude' => 'required|numeric',
+        'dropoff_latitude'  => 'required|numeric',
         'dropoff_longitude' => 'required|numeric',
     ]);
 
@@ -36,9 +35,8 @@ class TripController extends Controller
         $lat2 = doubleval($request->dropoff_latitude);
         $lon2 = doubleval($request->dropoff_longitude);
 
-        // 2. The Haversine Formula (Calculates straight-line distance over Earth's surface)
+        // 2. Compute Haversine straight-line distance
         $earthRadius = 6371; // Earth radius in kilometers
-
         $dLat = deg2rad($lat2 - $lat1);
         $dLon = deg2rad($lon2 - $lon1);
 
@@ -49,17 +47,43 @@ class TripController extends Controller
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
         $straightLineDistance = $earthRadius * $c;
 
-        // 3. Add a driving route factor (roads are roughly 20-30% longer than straight lines)
-        $distanceInKm = $straightLineDistance * 1.25;
+        // 3. Convert metrics to match your "rides" table requirements
+        $distanceInKm = $straightLineDistance * 1.25; // Driving routing factor adjustment
+        $distanceInMeters = (int) round($distanceInKm * 1000);
 
-        // 4. Calculate Ride Price: Base Fare ($5.00) + ($1.50 per KM)
-        $estimatedPrice = 5.00 + ($distanceInKm * 1.50); 
+        // 4. Calculate estimated duration (assuming average city speed of 30 km/h)
+        // Formula: Time = Distance / Speed -> Hours to seconds mapping
+        $averageSpeedKmh = 30;
+        $durationInHours = $distanceInKm / $averageSpeedKmh;
+        $durationInSeconds = (int) round($durationInHours * 3600);
 
+        // 5. Dynamic Metadata Rules (Matches your table fields)
+        $surgeMultiplier = 1.00; // You can write custom rush-hour condition overrides here
+        
+        // Ride Metric Cost Model: Base Fare ($5.00) + ($1.50 per KM) * Surge
+        $baseFare = 5.00;
+        $perKmRate = 1.50;
+        $calculatedFare = ($baseFare + ($distanceInKm * $perKmRate)) * $surgeMultiplier;
+
+        // 6. Return keys formatted exactly like your schema column definitions
         return response()->json([
             'status' => 'success',
             'calculation_engine' => 'Local Server Matrix',
-            'distance' => round($distanceInKm, 2),
-            'price' => round($estimatedPrice, 2)
+            
+            // Map parameters to match input field validations
+            'pickup_lat' => $lat1,
+            'pickup_long' => $lon1,
+            'dropoff_lat' => $lat2,
+            'dropoff_long' => $lon2,
+            
+            // Map parameters to match your metadata column keys
+            'estimated_distance_meters' => $distanceInMeters,
+            'estimated_duration_seconds' => $durationInSeconds,
+            'surge_multiplier' => round($surgeMultiplier, 2),
+            
+            // Final calculated price matching your currency float layouts
+            'fare' => round($calculatedFare, 2),
+            'formatted_distance_km' => round($distanceInKm, 2)
         ]);
 
     } catch (\Throwable $e) {
@@ -68,8 +92,7 @@ class TripController extends Controller
             'message' => $e->getMessage()
         ], 500);
     }
-    }
-
+}
 
     public function show(Request $request, $id)
     {
@@ -79,7 +102,7 @@ class TripController extends Controller
         }
         return response()->json($trip, 200);
     }
-    
+
     public function getTripStatus(Request $request, $id)
     {
         $trip = $request->user()->trips()->find($id);
