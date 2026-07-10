@@ -18,9 +18,15 @@ class DriverLocationUpdated implements ShouldBroadcastNow
     /**
      * Create a new event instance.
      */
-    public function __construct(public User $driver,public float $lat,public float $lng)
+    public $driverId;
+    public $lat;
+    public $lng;
+
+    public function __construct($driverId, $lat, $lng)
     {
-        //
+        $this->driverId = $driverId;
+        $this->lat = $lat;
+        $this->lng = $lng;
     }
 
     /**
@@ -31,6 +37,6 @@ class DriverLocationUpdated implements ShouldBroadcastNow
     public function broadcastOn(): array
     {
          // Broadcasts on a specific channel that the assigned passenger listens to
-        return [new Channel('trip.' . $this->driver->active_trip_id)];
+        return new Channel('trip-tracking');
     }
 }

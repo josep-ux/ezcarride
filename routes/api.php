@@ -17,8 +17,8 @@ Route::prefix('v1')->group(function () {
     Route::post('/forgot-password', [AuthController::class, 'sendResetCode']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 });
-//you must login to use any of this end points here
 
+//you must login to use any of this end points here
 Route::prefix('v1/us/rider')->middleware('auth:sanctum')->group(function () {
     Route::put('/updateProfile', [AuthController::class, 'updateProfileRider']);
     Route::post('/rideRequest', [TripController::class, 'requestRide']);
@@ -56,6 +56,7 @@ Route::prefix('v1/us/rider')->middleware('auth:sanctum')->group(function () {
     Route::post('/trip/{id}/paymentHistory', [TripController::class, 'updateTripPaymentHistory']);
     Route::get('/trip/{id}/ratingHistory', [TripController::class, 'getTripRatingHistory']);
     Route::post('/trip/{id}/ratingHistory', [TripController::class, 'updateTripRatingHistory']);
+    Route::post('/trip-estimate', [TripController::class, 'estimateTrip']);
 });
 
 Route::prefix('v1/ng/rider')->middleware('auth:sanctum')->group(function () {

@@ -68,7 +68,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users');
             $table->foreignId('driver_id')->nullable()->constrained('users');
             $table->foreignId('rider_id')->nullable()->constrained('users');
-            $table->string('status')->default('pending'); // pending, accepted, ongoing, completed
+            $table->string('status')->default('pending'); // pending, accepted, pickup, ongoing, completed
             $table->decimal('pickup_latitude', 10, 8);
             $table->decimal('pickup_longitude', 11, 8);
             $table->decimal('dropoff_latitude', 10, 8);

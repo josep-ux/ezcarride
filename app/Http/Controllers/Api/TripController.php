@@ -15,6 +15,31 @@ class TripController extends Controller
         $trips = $request->user()->trips()->get();
         return response()->json($trips, 200);
     }
+    use Illuminate\Support\Facades\Http;
+
+public function estimateTrip(Request $request) 
+{
+    $apiKey = config('AIzaSyBDMijxyjKloVpEKQhcEpPiI2tDFlzgUbo');
+    $response = Http::get("https://googleapis.com", [
+        'origins' => "{$request->pickup_latitude},{$request->pickup_longitude}",
+        'destinations' => "{$request->dropoff_latitude},{$request->dropoff_longitude}",
+        'key' => $apiKey
+    ]);
+
+    $data = $response->json();
+    
+    // Parse distance in meters and duration in seconds
+    $distanceInKm = $data['rows'][0]['elements'][0]['distance']['value'] / 1000;
+    
+    // Simple Pricing Formula: Base Fare + (Per KM rate)
+    $estimatedPrice = 5.00 + ($distanceInKm * 1.50); 
+
+    return response()->json([
+        'distance' => $distanceInKm,
+        'price' => round($estimatedPrice, 2)
+    ]);
+}
+
 
     public function show(Request $request, $id)
     {

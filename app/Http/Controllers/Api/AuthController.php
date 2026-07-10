@@ -329,7 +329,7 @@ class AuthController extends Controller
         $request->validate([
         'email' => 'required|email|exists:users,email',
         'code' => 'required|string|min:6|max:6',
-        'password' => 'required|string|min:8|confirmed',
+        'password' => 'required|string|min:8|confirmed|PasswordRule::min(8)->mixedCase()->numbers()->symbols()',
     ]);
 
     // 1. Retrieve the token record from the database table

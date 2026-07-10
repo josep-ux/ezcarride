@@ -32,9 +32,15 @@ class DriverController extends Controller
         ], 200);
     }
     public function updateLocation(Request $request){
-        return response()->json([
-            'success' => true,
-        ], 200);
+        $user = auth()->user();
+        $user->update([
+            'curr_lat' => $request->lat,
+            'curr_lng' => $request->lng,
+        ]);
+
+        broadcast(new DriverLocationUpdated($user->id, $request->lat, $request->lng))->toOthers();
+
+        return response()->json(['status' => 'Location Updated']);
 }
     public function acceptRide(Request $request){
         return response()->json([
