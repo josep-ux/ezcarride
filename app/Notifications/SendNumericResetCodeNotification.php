@@ -10,11 +10,11 @@ class SendNumericResetCodeNotification extends Notification
 {
     use Queueable;
 
-    protected $token;
+    protected $code;
 
-    public function __construct($token)
+    public function __construct($code)
     {
-        $this->token = $token;
+        $this->code = (string) $code;
     }
 
     public function via($notifiable): array
@@ -25,7 +25,7 @@ class SendNumericResetCodeNotification extends Notification
     public function toMail($notifiable): MailMessage
     {
         // Convert Laravel's underlying token into your exact 6-digit numeric PIN
-        $pin = crc32($this->token) % 1000000;
+        $pin = crc32($this->code) % 1000000;
         $pin = str_pad((string)abs($pin), 6, '0', STR_PAD_LEFT);
 
         return (new MailMessage)
