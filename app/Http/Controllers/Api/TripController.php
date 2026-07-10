@@ -10,6 +10,7 @@ use App\Jobs\DispatchDriverJob;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
+
 class TripController extends Controller
 {
     public function index(Request $request)
@@ -21,78 +22,52 @@ class TripController extends Controller
     public function estimateTrip(Request $request) 
     {
 
-     // 1. Validate inputs
-        $request->validate([
-            'pickup_latitude' => 'required',
-            'pickup_longitude' => 'required',
-            'dropoff_latitude' => 'required',
-            'dropoff_longitude' => 'required',
+     // 1. Enforce validation on coordinates
+    $request->validate([
+        'pickup_latitude' => 'required|numeric',
+        'pickup_longitude' => 'required|numeric',
+        'dropoff_latitude' => 'required|numeric',
+        'dropoff_longitude' => 'required|numeric',
+    ]);
+
+    try {
+        $lat1 = doubleval($request->pickup_latitude);
+        $lon1 = doubleval($request->pickup_longitude);
+        $lat2 = doubleval($request->dropoff_latitude);
+        $lon2 = doubleval($request->dropoff_longitude);
+
+        // 2. The Haversine Formula (Calculates straight-line distance over Earth's surface)
+        $earthRadius = 6371; // Earth radius in kilometers
+
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLon = deg2rad($lon2 - $lon1);
+
+        $a = sin($dLat / 2) * sin($dLat / 2) +
+             cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
+             sin($dLon / 2) * sin($dLon / 2);
+             
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+        $straightLineDistance = $earthRadius * $c;
+
+        // 3. Add a driving route factor (roads are roughly 20-30% longer than straight lines)
+        $distanceInKm = $straightLineDistance * 1.25;
+
+        // 4. Calculate Ride Price: Base Fare ($5.00) + ($1.50 per KM)
+        $estimatedPrice = 5.00 + ($distanceInKm * 1.50); 
+
+        return response()->json([
+            'status' => 'success',
+            'calculation_engine' => 'Local Server Matrix',
+            'distance' => round($distanceInKm, 2),
+            'price' => round($estimatedPrice, 2)
         ]);
 
-        try {
-            $apiKey = config('services.google.maps_key'); 
-            
-            // Encode coordinates to stay secure in transit
-            $origins = urlencode("{$request->pickup_latitude},{$request->pickup_longitude}");
-            $destinations = urlencode("{$request->dropoff_latitude},{$request->dropoff_longitude}");
-            
-            $url = "https://googleapis.com{$origins}&destinations={$destinations}&key={$apiKey}";
-
-            // 2. Fire using native cURL stream to avoid Laravel Mock layers
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $url);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Prevents local server certificate dropouts
-            
-            $responseBody = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-
-            if ($responseBody === false) {
-                return response()->json(['error' => 'cURL transport connection failure.'], 502);
-            }
-
-            $data = json_decode($responseBody, true);
-
-            // 3. Robust index array checking to prevent any crash
-            if (
-                $httpCode !== 200 ||
-                empty($data['status']) || 
-                $data['status'] !== 'OK' || 
-                empty($data['rows'][0]['elements'][0]['status']) || 
-                $data['rows'][0]['elements'][0]['status'] !== 'OK'
-            ) {
-                return response()->json([
-                    'status' => 'Google verified a deployment restriction flag.',
-                    'network_http_code' => $httpCode,
-                    'google_top_status' => $data['status'] ?? 'EMPTY_BODY',
-                    'element_status' => $data['rows'][0]['elements'][0]['status'] ?? 'EMPTY_ELEMENTS',
-                    'error_message' => $data['error_message'] ?? 'Verify Distance Matrix API configuration in Google Console.',
-                    'raw_payload' => $data
-                ], 422);
-            }
-
-            // 4. Safe metric extraction 
-            $distanceInMeters = $data['rows'][0]['elements'][0]['distance']['value'];
-            $distanceInKm = $distanceInMeters / 1000;
-            
-            // Pricing: Base Fare ($5.00) + ($1.50 per KM)
-            $estimatedPrice = 5.00 + ($distanceInKm * 1.50); 
-
-            return response()->json([
-                'distance' => round($distanceInKm, 2),
-                'price' => round($estimatedPrice, 2)
-            ]);
-
-        } catch (\Throwable $e) {
-            // 5. Catch any unexpected structural array errors safely
-            return response()->json([
-                'error' => 'An internal script error was safely intercepted.',
-                'message' => $e->getMessage(),
-                'line' => $e->getLine()
-            ], 500);
-        }
+    } catch (\Throwable $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ], 500);
+    }
     }
 
 
@@ -104,6 +79,7 @@ class TripController extends Controller
         }
         return response()->json($trip, 200);
     }
+    
     public function getTripStatus(Request $request, $id)
     {
         $trip = $request->user()->trips()->find($id);
