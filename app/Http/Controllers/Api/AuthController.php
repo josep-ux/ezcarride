@@ -351,7 +351,7 @@ if (\Carbon\Carbon::parse($record->created_at)->isBefore($expirationThreshold)) 
     $userInputCode = (string) $request->code;
 
 // Optional: Add this line temporarily to check your storage/logs/laravel.log 
-\Illuminate\Support\Facades\Log::info("Testing verification for code: ". [$userInputCode, $record->token]);
+\Illuminate\Support\Facades\Log::info([$userInputCode, $record->token]);
 
 if (Hash::check($userInputCode, $record->token)) {
     \Illuminate\Support\Facades\Log::info(Hash::check($userInputCode, $record->token));
