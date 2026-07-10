@@ -21,51 +21,63 @@ class TripController extends Controller
     public function estimateTrip(Request $request) 
     {
       try {
-         // 1. Read coordinates, falling back to Lagos placeholders if inputs are empty
-    $pickupLat  = $request->input('pickup_latitude', '6.6058');
-    $pickupLng  = $request->input('pickup_longitude', '3.3491');
-    $dropoffLat = $request->input('dropoff_latitude', '6.5244');
-    $dropoffLng = $request->input('dropoff_longitude', '3.3792');
-
-    // 2. Fetch the Key
-    $apiKey = config('services.google.maps_key'); 
-    $apiUrl = "https://googleapis.com";
-
-    // 3. Fire out the connection payload to Google
-    $response = Http::withoutVerifying()->get($apiUrl, [
-        'origins'      => "{$pickupLat},{$pickupLng}",
-        'destinations' => "{$dropoffLat},{$dropoffLng}",
-        'key'          => $apiKey
-    ]);
-    $data = $response->json();
-
-    // 4. If Google complains about Billing, Keys, or Restrictions, catch it here cleanly
-    if (
-        $response->failed() || 
-        empty($data['status']) || 
-        $data['status'] !== 'OK' || 
-        empty($data['rows'][0]['elements'][0]['status']) || 
-        $data['rows'][0]['elements'][0]['status'] !== 'OK'
-    ) {
-        return response()->json([
-            'status'            => 'Google API verification caught a restriction flag',
-            'api_key_loaded'    => $apiKey ? 'Yes (Key string is active)' : 'No (Configuration is returning blank/null)',
-            'google_top_status' => $data['status'] ?? 'NO_RESPONSE',
-            'element_status'    => $data['rows'][0]['elements'][0]['status'] ?? 'NO_ELEMENTS',
-            'google_error_msg'  => $data['error_message'] ?? 'No written feedback. Check for an active Cloud Billing account.',
-            'raw_payload'       => $data // Displays the raw API output
-        ], 422);
+      public function index(Request $request)
+    {
+        $trips = $request->user()->trips()->get();
+        return response()->json($trips, 200);
     }
 
-    // 5. Successful metric calculations
-    $distanceInMeters = $data['rows'][0]['elements'][0]['distance']['value'];
-    $distanceInKm     = $distanceInMeters / 1000;
-    $estimatedPrice   = 5.00 + ($distanceInKm * 1.50); 
+    public function estimateTrip(Request $request) 
+    {
+        $request->validate([
+            'pickup_latitude' => 'required',
+            'pickup_longitude' => 'required',
+            'dropoff_latitude' => 'required',
+            'dropoff_longitude' => 'required',
+        ]);
 
-    return response()->json([
-        'distance' => round($distanceInKm, 2),
-        'price'    => round($estimatedPrice, 2)
-    ]);
+        $apiKey = config('services.google.maps_key'); 
+        $apiUrl = "https://googleapis.com";
+
+        // Call Google without verifying local server SSL handshakes
+        $response = Http::withoutVerifying()->get($apiUrl, [
+            'origins' => "{$request->pickup_latitude},{$request->pickup_longitude}",
+            'destinations' => "{$request->dropoff_latitude},{$request->dropoff_longitude}",
+            'key' => $apiKey
+        ]);
+
+        $data = $response->json();
+
+        // Check if the required nested elements array keys exist before using them
+        if (
+            $response->failed() || 
+            empty($data['status']) || 
+            $data['status'] !== 'OK' || 
+            empty($data['rows'][0]['elements'][0]['status']) || 
+            $data['rows'][0]['elements'][0]['status'] !== 'OK'
+        ) {
+            Log::error('Google Distance Matrix API Failure Logged', ['response' => $data]);
+            
+            return response()->json([
+                'status' => 'Google API request failed or returned invalid layout.',
+                'api_key_loaded' => $apiKey ? 'Yes' : 'No',
+                'http_status_returned' => $response->status(),
+                'google_top_status' => $data['status'] ?? 'NO_RESPONSE_BODY',
+                'element_status' => $data['rows'][0]['elements'][0]['status'] ?? 'NO_ELEMENTS',
+                'raw_payload' => $data
+            ], 422);
+        }
+    
+        // Calculate trip pricing details safely
+        $distanceInMeters = $data['rows'][0]['elements'][0]['distance']['value'];
+        $distanceInKm = $distanceInMeters / 1000;
+        $estimatedPrice = 5.00 + ($distanceInKm * 1.50); 
+
+        return response()->json([
+            'distance' => round($distanceInKm, 2),
+            'price' => round($estimatedPrice, 2)
+        ]);
+        
         } catch (\Throwable $e) {
             // Capture any hidden system crash reasons safely
             return response()->json([
