@@ -17,6 +17,7 @@ use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Notification;
 use App\Notifications\SendNumericResetCodeNotification;
 
 class AuthController extends Controller
@@ -316,7 +317,9 @@ class AuthController extends Controller
          );
 
     // Send $code to your user via your notification
-     Mail::to($request->email)->send(new SendNumericResetCodeNotification($code));
+    Notification::route('mail', $request->email)
+    ->notify(new SendNumericResetCodeNotification($code));
+     //Mail::to($request->email)->send(new SendNumericResetCodeNotification($code));
         }
 
     public function resetPassword(Request $request)
