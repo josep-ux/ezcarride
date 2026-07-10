@@ -351,9 +351,10 @@ if (\Carbon\Carbon::parse($record->created_at)->isBefore($expirationThreshold)) 
     $userInputCode = (string) $request->code;
 
 // Optional: Add this line temporarily to check your storage/logs/laravel.log 
-\Illuminate\Support\Facades\Log::info("Testing verification for code: " . $userInputCode);
+\Illuminate\Support\Facades\Log::info("Testing verification for code: " . $userInputCode, $record->token);
 
-if (!\Illuminate\Support\Facades\Hash::check($userInputCode, $record->token)) {
+if (Hash::check($userInputCode, $record->token)) {
+    \Illuminate\Support\Facades\Log::info(Hash::check($userInputCode, $record->token));
     return response()->json(['message' => 'The reset code provided is incorrect.'], 400);
 }
 
