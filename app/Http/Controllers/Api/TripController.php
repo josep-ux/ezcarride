@@ -96,57 +96,71 @@ class TripController extends Controller
 
    public function store(Request $request)
 {
-    // 1. Validate the final booking submission payload
+    // 1. Validate only the raw inputs sent from your frontend app inputs
     $request->validate([
-        'pickup_latitude'            => 'required|numeric',
-        'pickup_longitude'           => 'required|numeric',
-        'dropoff_latitude'           => 'required|numeric',
-        'dropoff_longitude'          => 'required|numeric',
-        'pickup_address'             => 'required|string|max:255',
-        'dropoff_address'            => 'required|string|max:255',
-        'estimated_distance_meters'  => 'required|integer',
-        'estimated_duration_seconds' => 'required|integer',
-        'surge_multiplier'           => 'required|numeric',
-        'fare'                       => 'required|numeric',
+        'pickup_latitude'  => 'required|numeric',
+        'pickup_longitude' => 'required|numeric',
+        'dropoff_latitude'  => 'required|numeric',
+        'dropoff_longitude' => 'required|numeric',
+        'pickup_address'   => 'required|string|max:255',
+        'dropoff_address'  => 'required|string|max:255',
     ]);
 
     try {
-        // 2. Insert the records mapping exactly to your 'rides' schema layout
-        $ride = Ride::create([
-            'passenger_id'               => $request->user()->id, // Automatically links the authenticated user
-            'driver_id'                  => null,                // Stays empty until a driver accepts the match
-            'status'                     => 'pending',           // Initial default lifecycle state
-            
-            // Map incoming coordinates to matching database columns
-            'pickup_lat'                 => $request->pickup_latitude,
-            'pickup_long'                => $request->pickup_longitude,
-            'dropoff_lat'                => $request->dropoff_latitude,
-            'dropoff_long'               => $request->dropoff_longitude,
-            
-            // Map text addresses
+        $lat1 = doubleval($request->pickup_latitude);
+        $lon1 = doubleval($request->pickup_longitude);
+        $lat2 = doubleval($request->dropoff_latitude);
+        $lon2 = doubleval($request->dropoff_longitude);
+
+        // 2. Run the secure local Haversine calculations directly inside the backend
+        $earthRadius = 6371; 
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLon = deg2rad($lon2 - $lon1);
+
+        $a = sin($dLat / 2) * sin($dLat / 2) +
+             cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
+             sin($dLon / 2) * sin($dLon / 2);
+             
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+        $straightLineDistance = $earthRadius * $c;
+
+        $distanceInKm = $straightLineDistance * 1.25; 
+        $distanceInMeters = (int) round($distanceInKm * 1000);
+
+        $averageSpeedKmh = 30;
+        $durationInSeconds = (int) round(($distanceInKm / $averageSpeedKmh) * 3600);
+
+        $surgeMultiplier = 1.00; // Hardcoded default placeholder
+        $calculatedFare = (5.00 + ($distanceInKm * 1.50)) * $surgeMultiplier;
+
+        // 3. Save the calculated metrics straight into the database table rows
+        $ride = \App\Models\Ride::create([
+            'passenger_id'               => $request->user()->id,
+            'driver_id'                  => null,
+            'status'                     => 'pending',
+            'pickup_lat'                 => $lat1,
+            'pickup_long'                => $lon1,
+            'dropoff_lat'                => $lat2,
+            'dropoff_long'               => $lon2,
             'pickup_address'             => $request->pickup_address,
             'dropoff_address'            => $request->dropoff_address,
-            
-            // Log core operational calculation metrics
-            'surge_multiplier'           => $request->surge_multiplier,
-            'estimated_duration_seconds' => $request->estimated_duration_seconds,
-            'estimated_distance_meters'  => $request->estimated_distance_meters,
-            'fare'                       => $request->fare,
+            'surge_multiplier'           => round($surgeMultiplier, 2),
+            'estimated_duration_seconds' => $durationInSeconds,
+            'estimated_distance_meters'  => $distanceInMeters,
+            'fare'                       => round($calculatedFare, 2),
         ]);
 
-        // 3. Return the created ride record so your frontend app can listen for driver matches
         return response()->json([
             'status'  => 'success',
-            'message' => 'Ride booking requested successfully.',
+            'message' => 'Ride booking finalized and requested successfully!',
             'ride'    => $ride
         ], 201);
 
     } catch (\Throwable $e) {
-        Log::error('Ride Creation Database Crash', ['error' => $e->getMessage()]);
-        
         return response()->json([
             'status'  => 'error',
-            'message' => 'Could not save the booking request to the database.'
+            'message' => 'Internal server error processing booking write.',
+            'error'   => $e->getMessage()
         ], 500);
     }
 }
