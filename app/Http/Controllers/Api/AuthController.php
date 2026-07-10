@@ -346,9 +346,18 @@ class AuthController extends Controller
     }
 
     // 3. Verify the 6-digit code securely using Hash::check
-    if (!Hash::check($request->code, $record->token)) {
-        return response()->json(['message' => 'The reset code provided is incorrect.'], 400);
-    }
+    $userInputCode = (string) $request->code;
+
+// Optional: Add this line temporarily to check your storage/logs/laravel.log 
+\Illuminate\Support\Facades\Log::info("Testing verification for code: " . $userInputCode);
+
+if (!\Illuminate\Support\Facades\Hash::check($userInputCode, $record->token)) {
+    return response()->json(['message' => 'The reset code provided is incorrect.'], 400);
+}
+
+    // if (!Hash::check($request->code, $record->token)) {
+    //     return response()->json(['message' => 'The reset code provided is incorrect.'], 400);
+    // }
 
     // 4. Update the user password
     $user = User::where('email', $request->email)->first();
