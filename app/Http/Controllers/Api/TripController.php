@@ -20,59 +20,55 @@ class TripController extends Controller
     
     public function estimateTrip(Request $request) 
     {
-     $request->validate([
+     // 1. Ensure incoming inputs exist
+    $request->validate([
         'pickup_latitude' => 'required',
         'pickup_longitude' => 'required',
         'dropoff_latitude' => 'required',
         'dropoff_longitude' => 'required',
     ]);
 
+    // 2. Load API key and define the clean Google maps URL
     $apiKey = config('services.google.maps_key'); 
-    
-    // EXPLICIT ENDPOINT: Do not use the base googleapis.com root domain
     $apiUrl = "https://googleapis.com";
 
+    // 3. Dispatch out the HTTP request payload
     $response = Http::get($apiUrl, [
         'origins' => "{$request->pickup_latitude},{$request->pickup_longitude}",
         'destinations' => "{$request->dropoff_latitude},{$request->dropoff_longitude}",
         'key' => $apiKey
     ]);
 
-    // Handle network or connection failures immediately
+    // 4. Safely handle direct network dropouts
     if ($response->failed()) {
-        return response()->json([
-            'error' => 'Network request to Google Maps failed.',
-            'http_status' => $response->status(),
-            'api_url_attempted' => $apiUrl
-        ], 502);
+        Log::error('Google Maps API Network Call Failed');
+        return response()->json(['error' => 'Network request to Google failed.'], 502);
     }
 
     $data = $response->json();
 
-    // Verify Google's top-level response payload status first
-    if (!isset($data['status']) || $data['status'] !== 'OK') {
+    // 5. BULLETPROOF FAIL-SAFE: Check nesting depths before reading indices
+    if (
+        empty($data['status']) || 
+        $data['status'] !== 'OK' || 
+        empty($data['rows'][0]['elements'][0]['status']) || 
+        $data['rows'][0]['elements'][0]['status'] !== 'OK'
+    ) {
+        Log::error('Google API Error or Invalid Route Coordinates', ['response' => $data]);
+        
         return response()->json([
-            'error' => 'Google API returned a top-level error.',
-            'google_status' => $data['status'] ?? 'UNKNOWN',
-            'error_message' => $data['error_message'] ?? 'No message provided.',
-            'raw_payload' => $data
+            'error' => 'Could not calculate trip distance.',
+            'google_status' => $data['status'] ?? 'MISSING_TOP_STATUS',
+            'element_status' => $data['rows'][0]['elements'][0]['status'] ?? 'MISSING_ELEMENT_STATUS',
+            'error_message' => $data['error_message'] ?? 'Check your deployment billing details or API key restrictions.'
         ], 422);
     }
 
-    // Verify the inner routing elements container layout exists safely
-    if (empty($data['rows'][0]['elements'][0]['status']) || $data['rows'][0]['elements'][0]['status'] !== 'OK') {
-        return response()->json([
-            'error' => 'Could not calculate distance between these coordinates.',
-            'element_status' => $data['rows'][0]['elements'][0]['status'] ?? 'MISSING',
-            'raw_payload' => $data
-        ], 422);
-    }
-
-    // Safely pull metrics once validation verification passes
+    // 6. Safely calculate distance parameters now that arrays are verified
     $distanceInMeters = $data['rows'][0]['elements'][0]['distance']['value'];
     $distanceInKm = $distanceInMeters / 1000;
     
-    // Ride Metric Formula: Base Fare ($5.00) + ($1.50 per KM)
+    // Simple Pricing Formula: Base Fare ($5.00) + ($1.50 per KM)
     $estimatedPrice = 5.00 + ($distanceInKm * 1.50); 
 
     return response()->json([
