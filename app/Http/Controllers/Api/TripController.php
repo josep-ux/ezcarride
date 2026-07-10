@@ -17,15 +17,6 @@ class TripController extends Controller
         $trips = $request->user()->trips()->get();
         return response()->json($trips, 200);
     }
-    
-    public function estimateTrip(Request $request) 
-    {
-      try {
-      public function index(Request $request)
-    {
-        $trips = $request->user()->trips()->get();
-        return response()->json($trips, 200);
-    }
 
     public function estimateTrip(Request $request) 
     {
@@ -77,7 +68,7 @@ class TripController extends Controller
             'distance' => round($distanceInKm, 2),
             'price' => round($estimatedPrice, 2)
         ]);
-        
+
         } catch (\Throwable $e) {
             // Capture any hidden system crash reasons safely
             return response()->json([
