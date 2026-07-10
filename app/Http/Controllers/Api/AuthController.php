@@ -14,6 +14,7 @@ use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
 use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
