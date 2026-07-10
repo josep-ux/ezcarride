@@ -221,7 +221,7 @@ class AuthController extends Controller
         'data' => $user
     ], 200);
     }
-    // change image or update image
+    // change image or update image for rider
     public function changeImage(Request $request){
          $validator = Validator::make($request->all(), [
             'profile_image' => 'nullable|file|image|mimes:jpeg,png,jpg,gif|max:2048', // Max size 2MB
