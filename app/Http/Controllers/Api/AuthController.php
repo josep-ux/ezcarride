@@ -15,6 +15,8 @@ use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
+use App\Notifications\SendNumericResetCodeNotification;
 
 class AuthController extends Controller
 {
@@ -300,16 +302,21 @@ class AuthController extends Controller
 
     public function sendResetCode(Request $request)
     {
-        $request->validate(['email' => 'required|email|exists:users,email']);
+          $request->validate(['email' => 'required|email|exists:users,email']);
+        // Inside your custom send code method instead of PasswordFacade:
+        $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-        $status = PasswordFacade::sendResetLink(
-            $request->only('email')
-        );
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $request->email],
+            [
+                'token' => Hash::make($code), // Securely hash the 6-digit pin
+                'created_at' => Carbon::now()
+            ]
+         );
 
-        return $status === PasswordFacade::RESET_LINK_SENT
-                    ? response()->json(['message' => __($status)], 200)
-                    : response()->json(['message' => __($status)], 400);
-    }
+    // Send $code to your user via your notification
+     Mail::to($request->email)->send(new SendNumericResetCodeNotification($code));
+        }
 
     public function resetPassword(Request $request)
 {
@@ -320,14 +327,12 @@ class AuthController extends Controller
     ]);
 
     // 1. Retrieve the token record from the database table
-    $record = DB::table('password_reset_tokens')
-                ->where('email', $request->email)
-                ->first();
+    // Inside your resetPassword method:
+        $record = DB::table('password_reset_tokens')->where('email', $request->email)->first();
 
-    if (!$record) {
-        return response()->json(['message' => 'Invalid request or token expired.'], 400);
-    }
-
+        if (!$record || !Hash::check($request->code, $record->token)) {
+            return response()->json(['message' => 'The reset code provided is incorrect or expired.'], 400);
+        }
     // 2. Regenerate your 6-digit verification logic to check if it matches the token on file
     $expectedPin = crc32($record->token) % 1000000;
     $expectedPin = str_pad(abs($expectedPin), 6, '0', STR_PAD_LEFT);
