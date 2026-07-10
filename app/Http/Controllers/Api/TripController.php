@@ -164,6 +164,7 @@ class TripController extends Controller
             'error'   => $e->getMessage()
         ], 500);
     }
+}
 
     /**
  * Scan for unassigned pending rides within a 10km radius of the driver.
