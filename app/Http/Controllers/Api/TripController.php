@@ -363,8 +363,8 @@ public function completeTrip(Request $request, $id)
     }
 }
 
-    /**
- * Passenger or Driver cancels an active ride request.
+ **
+ * Passenger or Driver cancels an active ride request with Late Fee protection math rules.
  */
 public function cancelRide(Request $request, $id)
 {
@@ -389,14 +389,35 @@ public function cancelRide(Request $request, $id)
             ], 422);
         }
 
-        // Update status and store the reason (Make sure to log this text if needed)
+        $cancellationFee = 0.00;
+        $appliedFeeMessage = "Ride canceled free of charge.";
+
+        // LATE CANCELLATION RULE: If a driver accepted it, and more than 3 minutes have passed since acceptance
+        if ($ride->status === 'accepted' && !is_null($ride->accepted_at)) {
+            $minutesSinceAcceptance = Carbon::parse($ride->accepted_at)->diffInMinutes(Carbon::now());
+            
+            if ($minutesSinceAcceptance >= 3) {
+                $cancellationFee = 2.50; // Flat $2.50 late cancellation fee penalty matrix match
+                $appliedFeeMessage = "A late cancellation fee of $" . number_format($cancellationFee, 2) . " has been charged.";
+            }
+        }
+        
+        // If driver has already arrived or trip is in progress, cancellation always triggers a fee
+        if (in_array($ride->status, ['arriving', 'in_progress'])) {
+            $cancellationFee = 3.50; // Higher fee penalty for dropping active routes
+            $appliedFeeMessage = "An active route cancellation fee of $" . number_format($cancellationFee, 2) . " has been charged.";
+        }
+
+        // Update status and save values (using fare column to store cancellation penalty payout data if needed)
         $ride->update([
-            'status' => 'canceled'
+            'status' => 'canceled',
+            'fare'   => $cancellationFee > 0 ? $cancellationFee : $ride->fare
         ]);
 
         return response()->json([
             'status' => 'success',
-            'message' => 'The ride has been successfully canceled.',
+            'message' => 'The ride has been successfully canceled. ' . $appliedFeeMessage,
+            'cancellation_fee' => round($cancellationFee, 2),
             'ride' => $ride
         ], 200);
 
@@ -406,28 +427,46 @@ public function cancelRide(Request $request, $id)
 }
 
 /**
- * Fetch a breakdown of a driver's historical completed rides and total earnings.
+ * Fetch driver earnings filterable by custom dynamic date ranges (e.g., day, week, month).
  */
 public function driverEarnings(Request $request)
 {
     try {
         $driverId = $request->user()->id;
+        
+        // Get the requested timeframe window parameter filter rule (defaults to weekly)
+        $range = $request->query('range', 'week'); 
+        $query = Ride::where('driver_id', $driverId)->where('status', 'completed');
 
-        // Fetch all completed rides for this specific driver
-        $completedRides = Ride::where('driver_id', $driverId)
-            ->where('status', 'completed')
-            ->orderBy('completed_at', 'desc')
-            ->get();
+        // Apply clean programmatic calendar matrix date offsets
+        switch ($range) {
+            case 'today':
+                $query->whereDate('completed_at', Carbon::today());
+                $rangeLabel = "Today's metrics balance";
+                break;
+            case 'month':
+                $query->whereMonth('completed_at', Carbon::now()->month)
+                      ->whereYear('completed_at', Carbon::now()->year);
+                $rangeLabel = "Current month metrics statement";
+                break;
+            case 'week':
+            default:
+                $query->whereBetween('completed_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()]);
+                $rangeLabel = "Current statement week balance metrics";
+                break;
+        }
 
-        // Calculate total raw gross value
+        $completedRides = $query->orderBy('completed_at', 'desc')->get();
+
+        // Compute split fee payouts values
         $totalGrossEarnings = $completedRides->sum('fare');
-
-        // Assume your platform takes a standard 20% commission fee cutout
-        $platformCommissionFee = $totalGrossEarnings * 0.20;
+        $platformCommissionFee = $totalGrossEarnings * 0.20; // 20% platform revenue cut model
         $driverNetPayout = $totalGrossEarnings - $platformCommissionFee;
 
         return response()->json([
             'status' => 'success',
+            'timeframe_filtered' => $range,
+            'statement_label' => $rangeLabel,
             'summary' => [
                 'total_completed_trips' => $completedRides->count(),
                 'gross_earnings' => round($totalGrossEarnings, 2),
