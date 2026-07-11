@@ -363,7 +363,7 @@ public function completeTrip(Request $request, $id)
     }
 }
 
- **
+ /**
  * Passenger or Driver cancels an active ride request with Late Fee protection math rules.
  */
 public function cancelRide(Request $request, $id)
