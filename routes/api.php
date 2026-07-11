@@ -125,6 +125,6 @@ Route::prefix('v1/us/driver')->middleware('auth:sanctum')->group(function () {
     Route::put('/updateImage', [AuthController::class, 'changeImageDriver']);
     Route::put('updatePassword', [AuthController::class, 'changePasswordDriver']);
     Route::put('/updateLocation', [DriverController::class, 'updateLocation']);
-    Route::put('/driver/rides/{id}/arrived', [TripController::class, 'driverArrived']);
-    Route::put('/driver/rides/{id}/start', [TripController::class, 'startTrip']);
-    Route::put('/driver/rides/{id}/complete', [TripController::class, 'completeTrip']);});
+    Route::put('/rides/{id}/start', [TripController::class, 'startTrip']);
+    Route::put('/rides/{id}/complete', [TripController::class, 'completeTrip']);});
+    Route::put('/rides/{id}/arrived', [TripController::class, 'driverArrived']);
