@@ -363,6 +363,85 @@ public function completeTrip(Request $request, $id)
     }
 }
 
+    /**
+ * Passenger or Driver cancels an active ride request.
+ */
+public function cancelRide(Request $request, $id)
+{
+    $request->validate([
+        'cancellation_reason' => 'required|string|max:255'
+    ]);
+
+    try {
+        $ride = Ride::findOrFail($id);
+        $userId = $request->user()->id;
+
+        // Security check: Only the involved passenger or driver can cancel
+        if ($ride->passenger_id !== $userId && $ride->driver_id !== $userId) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
+        }
+
+        // Prevent canceling completed or already canceled rides
+        if (in_array($ride->status, ['completed', 'canceled'])) {
+            return response()->json([
+                'status' => 'error', 
+                'message' => "Cannot cancel a ride that is already {$ride->status}."
+            ], 422);
+        }
+
+        // Update status and store the reason (Make sure to log this text if needed)
+        $ride->update([
+            'status' => 'canceled'
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'The ride has been successfully canceled.',
+            'ride' => $ride
+        ], 200);
+
+    } catch (\Throwable $e) {
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+    }
+}
+
+/**
+ * Fetch a breakdown of a driver's historical completed rides and total earnings.
+ */
+public function driverEarnings(Request $request)
+{
+    try {
+        $driverId = $request->user()->id;
+
+        // Fetch all completed rides for this specific driver
+        $completedRides = Ride::where('driver_id', $driverId)
+            ->where('status', 'completed')
+            ->orderBy('completed_at', 'desc')
+            ->get();
+
+        // Calculate total raw gross value
+        $totalGrossEarnings = $completedRides->sum('fare');
+
+        // Assume your platform takes a standard 20% commission fee cutout
+        $platformCommissionFee = $totalGrossEarnings * 0.20;
+        $driverNetPayout = $totalGrossEarnings - $platformCommissionFee;
+
+        return response()->json([
+            'status' => 'success',
+            'summary' => [
+                'total_completed_trips' => $completedRides->count(),
+                'gross_earnings' => round($totalGrossEarnings, 2),
+                'platform_commission' => round($platformCommissionFee, 2),
+                'net_payout' => round($driverNetPayout, 2)
+            ],
+            'history' => $completedRides
+        ], 200);
+
+    } catch (\Throwable $e) {
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+    }
+}
+
 }
 
 
