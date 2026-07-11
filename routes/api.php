@@ -29,37 +29,7 @@ Route::prefix('v1/us/rider')->middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard', [RiderController::class, 'dashboard']);
     Route::put('/updateImage', [AuthController::class, 'changeImage']);
     Route::put('/updatePassword', [AuthController::class, 'changePassword']);
-    Route::get('/trip/{id}/rating', [TripController::class, 'getTripRating']);
-    Route::post('/trip/{id}/rating', [TripController::class, 'updateTripRating']);
-    Route::get('/trip/{id}/feedback', [TripController::class, 'getTripFeedback']);
-    Route::post('/trip/{id}/feedback', [TripController::class, 'updateTripFeedback']);
-    Route::get('/trip/{id}/receipt', [TripController::class, 'getTripReceipt']);
-    Route::post('/trip/{id}/receipt', [TripController::class, 'updateTripReceipt']);
-    Route::get('/trip/{id}/invoice', [TripController::class, 'getTripInvoice']);
-    Route::post('/trip/{id}/invoice', [TripController::class, 'updateTripInvoice']);
-    Route::get('/trip/{id}/route', [TripController::class, 'getTripRoute']);
-    Route::post('/trip/{id}/route', [TripController::class, 'updateTripRoute']);
-    Route::get('/trip/{id}/eta', [TripController::class, 'getTripEta']);
-    Route::post('/trip/{id}/eta', [TripController::class, 'updateTripEta']);
-    Route::get('/trip/{id}/distance', [TripController::class, 'getTripDistance']);
-    Route::post('/trip/{id}/distance', [TripController::class, 'updateTripDistance']);
-    Route::get('/trip/{id}/duration', [TripController::class, 'getTripDuration']);
-    Route::post('/trip/{id}/duration', [TripController::class, 'updateTripDuration'] );
-    Route::get('/trip/{id}/statusHistory', [TripController::class, 'getTripStatusHistory']);
-    Route::post('/trip/{id}/statusHistory', [TripController::class, 'updateTripStatusHistory']);
-    Route::get('/trip/{id}/locationHistory', [TripController::class, 'getTripLocationHistory']);
-    Route::post('/trip/{id}/locationHistory', [TripController::class, 'updateTripLocationHistory']);
-    Route::get('/trip/{id}/driverHistory', [TripController::class, 'getTripDriverHistory']);
-    Route::post('/trip/{id}/driverHistory', [TripController::class, 'updateTripDriverHistory']);
-    Route::get('/trip/{id}/riderHistory', [TripController::class, 'getTripRiderHistory']);
-    Route::post('/trip/{id}/riderHistory', [TripController::class, 'updateTripRiderHistory']);
-    Route::get('/trip/{id}/fareHistory', [TripController::class, 'getTripFareHistory']);
-    Route::post('/trip/{id}/fareHistory', [TripController::class, 'updateTripFareHistory']);
-    Route::get('/trip/{id}/paymentHistory', [TripController::class, 'getTripPaymentHistory']);
-    Route::post('/trip/{id}/paymentHistory', [TripController::class, 'updateTripPaymentHistory']);
-    Route::get('/trip/{id}/ratingHistory', [TripController::class, 'getTripRatingHistory']);
-    Route::post('/trip/{id}/ratingHistory', [TripController::class, 'updateTripRatingHistory']);
-   
+    Route::get('/rides/{id}/status', [TripController::class, 'checkRideStatus']); // <-- Add this tracking line
 });
 
 Route::prefix('v1/ng/rider')->middleware('auth:sanctum')->group(function () {
@@ -72,36 +42,7 @@ Route::prefix('v1/ng/rider')->middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard', [RiderController::class, 'dashboard']);
     Route::put('/updateImage', [AuthController::class, 'changeImage']);
     Route::put('/updatePassword', [AuthController::class, 'changePassword']);
-    Route::get('/trip/{id}/rating', [TripController::class, 'getTripRating']);
-    Route::post('/trip/{id}/rating', [TripController::class, 'updateTripRating']);
-    Route::get('/trip/{id}/feedback', [TripController::class, 'getTripFeedback']);
-    Route::post('/trip/{id}/feedback', [TripController::class, 'updateTripFeedback']);
-    Route::get('/trip/{id}/receipt', [TripController::class, 'getTripReceipt']);
-    Route::post('/trip/{id}/receipt', [TripController::class, 'updateTripReceipt']);
-    Route::get('/trip/{id}/invoice', [TripController::class, 'getTripInvoice']);
-    Route::post('/trip/{id}/invoice', [TripController::class, 'updateTripInvoice']);
-    Route::get('/trip/{id}/route', [TripController::class, 'getTripRoute']);
-    Route::post('/trip/{id}/route', [TripController::class, 'updateTripRoute']);
-    Route::get('/trip/{id}/eta', [TripController::class, 'getTripEta']);
-    Route::post('/trip/{id}/eta', [TripController::class, 'updateTripEta']);
-    Route::get('/trip/{id}/distance', [TripController::class, 'getTripDistance']);
-    Route::post('/trip/{id}/distance', [TripController::class, 'updateTripDistance']);
-    Route::get('/trip/{id}/duration', [TripController::class, 'getTripDuration']);
-    Route::post('/trip/{id}/duration', [TripController::class, 'updateTripDuration'] );
-    Route::get('/trip/{id}/statusHistory', [TripController::class, 'getTripStatusHistory']);
-    Route::post('/trip/{id}/statusHistory', [TripController::class, 'updateTripStatusHistory']);
-    Route::get('/trip/{id}/locationHistory', [TripController::class, 'getTripLocationHistory']);
-    Route::post('/trip/{id}/locationHistory', [TripController::class, 'updateTripLocationHistory']);
-    Route::get('/trip/{id}/driverHistory', [TripController::class, 'getTripDriverHistory']);
-    Route::post('/trip/{id}/driverHistory', [TripController::class, 'updateTripDriverHistory']);
-    Route::get('/trip/{id}/riderHistory', [TripController::class, 'getTripRiderHistory']);
-    Route::post('/trip/{id}/riderHistory', [TripController::class, 'updateTripRiderHistory']);
-    Route::get('/trip/{id}/fareHistory', [TripController::class, 'getTripFareHistory']);
-    Route::post('/trip/{id}/fareHistory', [TripController::class, 'updateTripFareHistory']);
-    Route::get('/trip/{id}/paymentHistory', [TripController::class, 'getTripPaymentHistory']);
-    Route::post('/trip/{id}/paymentHistory', [TripController::class, 'updateTripPaymentHistory']);
-    Route::get('/trip/{id}/ratingHistory', [TripController::class, 'getTripRatingHistory']);
-    Route::post('/trip/{id}/ratingHistory', [TripController::class, 'updateTripRatingHistory']);
+    Route::get('/rides/{id}/status', [TripController::class, 'checkRideStatus']); // <-- Add this tracking line
 });
 
 Route::prefix('v1/ng/driver')->middleware('auth:sanctum')->group(function () {

@@ -37,7 +37,7 @@ return new class extends Migration
             $table->string('payment_method')->nullable();
             $table->string('stripe_account_id')->nullable();
             $table->string('paypal_email')->nullable();
-            $table->string('profile_image')->nullable();
+            $table->longText('profile_image')->nullable();
             $table->string('status')->default('offline'); // offline, online, on_trip
             $table->decimal('curr_lat', 10, 8)->nullable();
             $table->decimal('curr_long', 11, 8)->nullable();

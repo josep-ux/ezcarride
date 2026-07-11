@@ -138,7 +138,7 @@ class TripController extends Controller
         $calculatedFare = (5.00 + ($distanceInKm * 1.50)) * $surgeMultiplier;
 
         // 3. Save the calculated metrics straight into the database table rows
-        $ride = \App\Models\Ride::create([
+        $ride = Ride::create([
             'passenger_id'               => $request->user()->id,
             'driver_id'                  => null,
             'status'                     => 'pending',
@@ -536,6 +536,53 @@ public function driverEarnings(Request $request)
             'history' => $completedRides
         ], 200);
 
+    } catch (\Throwable $e) {
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+    }
+}
+/**
+ * Fetch the live status and driver details for a specific ride request.
+ * (Used by the passenger app to poll for real-time updates)
+ */
+public function checkRideStatus(Request $request, $id)
+{
+    try {
+        // Eager load the driver relationship if you have it configured on your Model
+        $ride = Ride::findOrFail($id);
+        $userId = $request->user()->id;
+
+        // Security check: Only the passenger or assigned driver can view the status matrix
+        if ($ride->passenger_id !== $userId && $ride->driver_id !== $userId) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
+        }
+
+        // Return a clean payload layout for the Flutter UI template state machines
+        return response()->json([
+            'status' => 'success',
+            'ride_id' => $ride->id,
+            'current_state' => $ride->status, // pending, accepted, arriving, in_progress, completed, canceled
+            
+            // Driver metadata summary object container
+            'assignment' => [
+                'is_driver_assigned' => !is_null($ride->driver_id),
+                'driver_id' => $ride->driver_id,
+                'accepted_at' => $ride->accepted_at ? $ride->accepted_at->toIso8601String() : null,
+                'started_at' => $ride->started_at ? $ride->started_at->toIso8601String() : null,
+            ],
+            
+            // Operational distance/fare constants
+            'metrics' => [
+                'fare' => round($ride->fare, 2),
+                'estimated_distance_meters' => $ride->estimated_distance_meters,
+                'estimated_duration_seconds' => $ride->estimated_duration_seconds,
+            ],
+            
+            // Pass the raw row data for fallback parameters mapping
+            'raw_details' => $ride
+        ], 200);
+
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        return response()->json(['status' => 'error', 'message' => 'Ride tracking record missing.'], 404);
     } catch (\Throwable $e) {
         return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
     }

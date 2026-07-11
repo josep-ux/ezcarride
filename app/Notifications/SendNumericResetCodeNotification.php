@@ -11,10 +11,12 @@ class SendNumericResetCodeNotification extends Notification
     use Queueable;
 
     protected $code;
+    //protected $name
 
     public function __construct($code)
     {
         $this->code = (string) $code;
+        //$this->name = (string) $code;
     }
 
     public function via($notifiable): array
