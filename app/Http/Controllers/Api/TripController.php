@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Models\Ride;
 use Carbon\Carbon;
+use App\Models\DriverWallet;
+use App\Models\WalletTransaction;
+use Illuminate\Support\Facades\DB;
 
 class TripController extends Controller
 {
@@ -333,9 +336,28 @@ public function startTrip(Request $request, $id)
 /**
  * End the trip: Update ride status to 'completed'
  */
+/**
+ * Internal Notification Dispatcher Hub (Placeholder for Firebase / Pusher)
+ */
+private function sendPushNotification($userId, $title, $body)
+{
+    // Log notifications locally to prove your code hooks execute flawlessly
+    \Illuminate\Support\Facades\Log::info("PUSH NOTIFICATION SENT", [
+        'recipient_user_id' => $userId,
+        'title' => $title,
+        'body' => $body
+    ]);
+
+    // TODO: Plug in your third-party SDK call here later:
+    // fcm()->toUser($userId)->send(['title' => $title, 'body' => $body]);
+}
+
+/**
+ * End the trip: Settle balances instantly inside the Ledger
+ */
 public function completeTrip(Request $request, $id)
 {
-    try {
+    return DB::transaction(function () use ($request, $id) {
         $ride = Ride::findOrFail($id);
 
         if ($ride->driver_id !== $request->user()->id) {
@@ -343,24 +365,62 @@ public function completeTrip(Request $request, $id)
         }
 
         if ($ride->status !== 'in_progress') {
-            return response()->json(['status' => 'error', 'message' => 'Cannot complete a trip that has not started.'], 422);
+            return response()->json(['status' => 'error', 'message' => 'Invalid ride status state.'], 422);
         }
 
-        // Finalize transaction states and log timestamps
         $ride->update([
             'status' => 'completed',
             'completed_at' => Carbon::now()
         ]);
 
-        return response()->json([
-            'status'  => 'success',
-            'message' => 'Trip completed successfully! Fare amount earned.',
-            'ride'    => $ride
+        // Process Split Calculations
+        $netEarnings = $ride->fare * 0.80; // 80% net payout to the driver wallet
+
+        // Fetch or dynamically spin up a wallet for this driver profile
+        $wallet = DriverWallet::firstOrCreate(
+            ['driver_id' => $ride->driver_id],
+            ['balance' => 0.00]
+        );
+
+        // Credit the balance
+        $wallet->increment('balance', $netEarnings);
+
+        // Create transaction history row record
+        WalletTransaction::create([
+            'driver_wallet_id' => $wallet->id,
+            'ride_id' => $ride->id,
+            'type' => 'credit',
+            'amount' => $netEarnings,
+            'description' => "Earnings payout for completing Ride Order ID #{$ride->id}"
         ]);
 
-    } catch (\Throwable $e) {
-        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
-    }
+        // Trigger Real-Time Notification updates
+        $this->sendPushNotification($ride->passenger_id, "Trip Completed", "Thank you for riding with us! Your total fare was $" . number_format($ride->fare, 2));
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Trip completed successfully! Funds credited to your wallet.',
+            'ride'    => $ride,
+            'wallet_balance' => round($wallet->balance, 2)
+        ]);
+    });
+}
+
+/**
+ * Fetch Driver's active balance statement sheet
+ */
+public function walletBalance(Request $request)
+{
+    $wallet = DriverWallet::firstOrCreate(
+        ['driver_id' => $request->user()->id],
+        ['balance' => 0.00]
+    );
+
+    return response()->json([
+        'status' => 'success',
+        'current_balance' => round($wallet->balance, 2),
+        'ledger_history' => $wallet->transactions()->orderBy('created_at', 'desc')->get()
+    ]);
 }
 
  /**
