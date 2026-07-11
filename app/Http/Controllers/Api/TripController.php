@@ -267,6 +267,102 @@ public function acceptRide(Request $request, $id)
         ], 500);
     }
 }
+/**
+ * Update ride status to 'arriving' (Driver has reached the pickup location)
+ */
+public function driverArrived(Request $request, $id)
+{
+    try {
+        $ride = Ride::findOrFail($id);
+
+        // Security check: Only the assigned driver can declare arrival
+        if ($ride->driver_id !== $request->user()->id) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
+        }
+
+        if ($ride->status !== 'accepted') {
+            return response()->json(['status' => 'error', 'message' => 'Ride must be accepted before arrival.'], 422);
+        }
+
+        $ride->update(['status' => 'arriving']);
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Passenger notified that you have arrived at the pickup location.',
+            'ride'    => $ride
+        ]);
+
+    } catch (\Throwable $e) {
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+    }
+}
+
+/**
+ * Start the trip: Update ride status to 'in_progress'
+ */
+public function startTrip(Request $request, $id)
+{
+    try {
+        $ride = Ride::findOrFail($id);
+
+        if ($ride->driver_id !== $request->user()->id) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
+        }
+
+        if ($ride->status !== 'arriving' && $ride->status !== 'accepted') {
+            return response()->json(['status' => 'error', 'message' => 'Invalid ride state to start trip.'], 422);
+        }
+
+        // Set the active trip status and stamp start time
+        $ride->update([
+            'status' => 'in_progress',
+            'started_at' => Carbon::now()
+        ]);
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Trip started successfully. Have a safe drive!',
+            'ride'    => $ride
+        ]);
+
+    } catch (\Throwable $e) {
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+    }
+}
+
+/**
+ * End the trip: Update ride status to 'completed'
+ */
+public function completeTrip(Request $request, $id)
+{
+    try {
+        $ride = Ride::findOrFail($id);
+
+        if ($ride->driver_id !== $request->user()->id) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized action.'], 403);
+        }
+
+        if ($ride->status !== 'in_progress') {
+            return response()->json(['status' => 'error', 'message' => 'Cannot complete a trip that has not started.'], 422);
+        }
+
+        // Finalize transaction states and log timestamps
+        $ride->update([
+            'status' => 'completed',
+            'completed_at' => Carbon::now()
+        ]);
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Trip completed successfully! Fare amount earned.',
+            'ride'    => $ride
+        ]);
+
+    } catch (\Throwable $e) {
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+    }
+}
+
 }
 
 
