@@ -120,11 +120,11 @@ Route::prefix('v1/ng/driver')->middleware('auth:sanctum')->group(function () {
 Route::prefix('v1/us/driver')->middleware('auth:sanctum')->group(function () {
     Route::put('/updateProfile', [AuthController::class, 'updateProfileDriver']);
     Route::get('/dashboard', [DriverController::class, 'dashboard']);
-     Route::post('/available-rides', [TripController::class, 'availableRides']);
+    Route::post('/available-rides', [TripController::class, 'availableRides']);
     Route::put('/rides/{id}/accept', [TripController::class, 'acceptRide']);
     Route::put('/updateImage', [AuthController::class, 'changeImageDriver']);
     Route::put('updatePassword', [AuthController::class, 'changePasswordDriver']);
     Route::put('/updateLocation', [DriverController::class, 'updateLocation']);
     Route::put('/rides/{id}/start', [TripController::class, 'startTrip']);
-    Route::put('/rides/{id}/complete', [TripController::class, 'completeTrip']);});
+    Route::put('/rides/{id}/complete', [TripController::class, 'completeTrip']);
     Route::put('/rides/{id}/arrived', [TripController::class, 'driverArrived']);
