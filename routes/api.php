@@ -128,3 +128,4 @@ Route::prefix('v1/us/driver')->middleware('auth:sanctum')->group(function () {
     Route::put('/rides/{id}/start', [TripController::class, 'startTrip']);
     Route::put('/rides/{id}/complete', [TripController::class, 'completeTrip']);
     Route::put('/rides/{id}/arrived', [TripController::class, 'driverArrived']);
+});
