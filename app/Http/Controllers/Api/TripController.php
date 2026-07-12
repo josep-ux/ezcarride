@@ -19,11 +19,11 @@ class TripController extends Controller
 {
     public function index(Request $request)
     {
-        $trips = $request->user()->trips()->get();
+        $trips = $request->user()->rides()->get();
         return response()->json($trips, 200);
     }
 
-    public function estimateTrip(Request $request) 
+    public function estimateTrip(Request $request)
 {
     // 1. Enforce strict parameter verification matching your schema requirements
     $request->validate([
@@ -47,7 +47,7 @@ class TripController extends Controller
         $a = sin($dLat / 2) * sin($dLat / 2) +
              cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
              sin($dLon / 2) * sin($dLon / 2);
-             
+
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
         $straightLineDistance = $earthRadius * $c;
 
@@ -63,7 +63,7 @@ class TripController extends Controller
 
         // 5. Dynamic Metadata Rules (Matches your table fields)
         $surgeMultiplier = 1.00; // You can write custom rush-hour condition overrides here
-        
+
         // Ride Metric Cost Model: Base Fare ($5.00) + ($1.50 per KM) * Surge
         $baseFare = 5.00;
         $perKmRate = 1.50;
@@ -73,18 +73,18 @@ class TripController extends Controller
         return response()->json([
             'status' => 'success',
             'calculation_engine' => 'Local Server Matrix',
-            
+
             // Map parameters to match input field validations
             'pickup_lat' => $lat1,
             'pickup_long' => $lon1,
             'dropoff_lat' => $lat2,
             'dropoff_long' => $lon2,
-            
+
             // Map parameters to match your metadata column keys
             'estimated_distance_meters' => $distanceInMeters,
             'estimated_duration_seconds' => $durationInSeconds,
             'surge_multiplier' => round($surgeMultiplier, 2),
-            
+
             // Final calculated price matching your currency float layouts
             'fare' => round($calculatedFare, 2),
             'formatted_distance_km' => round($distanceInKm, 2)
@@ -117,18 +117,18 @@ class TripController extends Controller
         $lon2 = doubleval($request->dropoff_longitude);
 
         // 2. Run the secure local Haversine calculations directly inside the backend
-        $earthRadius = 6371; 
+        $earthRadius = 6371;
         $dLat = deg2rad($lat2 - $lat1);
         $dLon = deg2rad($lon2 - $lon1);
 
         $a = sin($dLat / 2) * sin($dLat / 2) +
              cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
              sin($dLon / 2) * sin($dLon / 2);
-             
+
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
         $straightLineDistance = $earthRadius * $c;
 
-        $distanceInKm = $straightLineDistance * 1.25; 
+        $distanceInKm = $straightLineDistance * 1.25;
         $distanceInMeters = (int) round($distanceInKm * 1000);
 
         $averageSpeedKmh = 30;
@@ -201,7 +201,7 @@ public function availableRides(Request $request)
             $a = sin($dLat / 2) * sin($dLat / 2) +
                  cos(deg2rad($driverLat)) * cos(deg2rad(doubleval($ride->pickup_lat))) *
                  sin($dLon / 2) * sin($dLon / 2);
-                 
+
             $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
             $distanceToPickupKm = $earthRadius * $c;
 
@@ -444,7 +444,7 @@ public function cancelRide(Request $request, $id)
         // Prevent canceling completed or already canceled rides
         if (in_array($ride->status, ['completed', 'canceled'])) {
             return response()->json([
-                'status' => 'error', 
+                'status' => 'error',
                 'message' => "Cannot cancel a ride that is already {$ride->status}."
             ], 422);
         }
@@ -455,13 +455,13 @@ public function cancelRide(Request $request, $id)
         // LATE CANCELLATION RULE: If a driver accepted it, and more than 3 minutes have passed since acceptance
         if ($ride->status === 'accepted' && !is_null($ride->accepted_at)) {
             $minutesSinceAcceptance = Carbon::parse($ride->accepted_at)->diffInMinutes(Carbon::now());
-            
+
             if ($minutesSinceAcceptance >= 3) {
                 $cancellationFee = 2.50; // Flat $2.50 late cancellation fee penalty matrix match
                 $appliedFeeMessage = "A late cancellation fee of $" . number_format($cancellationFee, 2) . " has been charged.";
             }
         }
-        
+
         // If driver has already arrived or trip is in progress, cancellation always triggers a fee
         if (in_array($ride->status, ['arriving', 'in_progress'])) {
             $cancellationFee = 3.50; // Higher fee penalty for dropping active routes
@@ -493,9 +493,9 @@ public function driverEarnings(Request $request)
 {
     try {
         $driverId = $request->user()->id;
-        
+
         // Get the requested timeframe window parameter filter rule (defaults to weekly)
-        $range = $request->query('range', 'week'); 
+        $range = $request->query('range', 'week');
         $query = Ride::where('driver_id', $driverId)->where('status', 'completed');
 
         // Apply clean programmatic calendar matrix date offsets
@@ -561,7 +561,7 @@ public function checkRideStatus(Request $request, $id)
             'status' => 'success',
             'ride_id' => $ride->id,
             'current_state' => $ride->status, // pending, accepted, arriving, in_progress, completed, canceled
-            
+
             // Driver metadata summary object container
             'assignment' => [
                 'is_driver_assigned' => !is_null($ride->driver_id),
@@ -569,14 +569,14 @@ public function checkRideStatus(Request $request, $id)
                 'accepted_at' => $ride->accepted_at ? $ride->accepted_at->toIso8601String() : null,
                 'started_at' => $ride->started_at ? $ride->started_at->toIso8601String() : null,
             ],
-            
+
             // Operational distance/fare constants
             'metrics' => [
                 'fare' => round($ride->fare, 2),
                 'estimated_distance_meters' => $ride->estimated_distance_meters,
                 'estimated_duration_seconds' => $ride->estimated_duration_seconds,
             ],
-            
+
             // Pass the raw row data for fallback parameters mapping
             'raw_details' => $ride
         ], 200);

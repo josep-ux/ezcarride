@@ -37,9 +37,12 @@ class User extends Authenticatable
             'is_available' => 'boolean',
         ];
     }
-    
+
     public function trips(){
         return $this->hasMany(Trip::class,'user_id');
+    }
+    public function rides(){
+        return $this->hasMany(Ride::class,'passenger_id');
     }
 
     public function sendPasswordResetNotification($token): void
