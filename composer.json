@@ -8,6 +8,7 @@
     "require": {
         "php": "^8.3",
         "aws/aws-sdk-php": "^3.385",
+        "cloudinary/cloudinary_php": "*",
         "guzzlehttp/guzzle": "*",
         "laravel/framework": "^13.8",
         "laravel/reverb": "^1.0",

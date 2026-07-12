@@ -102,25 +102,28 @@ class AuthController extends Controller
                 'message' => 'Invalid credentials. Password does not match our records.'
             ], 401);
         }
+         return response()->json([
+                'message' => 'No such records! Please check your email or register for a new account.'
+            ], 401);
 
         // 4. User does not exist -> Automatically create a new account
-        $newUser = User::create([
-            'name' => $request->name ?? explode('@', $request->email)[0], // Fallback if no name provided
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
+        // $newUser = User::create([
+        //     'name' => $request->name ?? explode('@', $request->email)[0], // Fallback if no name provided
+        //     'email' => $request->email,
+        //     'password' => Hash::make($request->password),
+        // ]);
 
         // Generate API Token for the newly registered user
-        $token = $newUser->createToken('auth_token')->plainTextToken;
+        //$token = $newUser->createToken('auth_token')->plainTextToken;
         // Trigger real-time alert to admin
-        broadcast(new UserCreated($newUser))->toOthers();
+       // broadcast(new UserCreated($newUser))->toOthers();
 
-        return response()->json([
-            'message' => 'Account created successfully',
-            'access_token' => $token,
-            'token_type' => 'Bearer',
-            'user' => $newUser
-        ], 201);
+        // return response()->json([
+        //     'message' => 'Account created successfully',
+        //     'access_token' => $token,
+        //     'token_type' => 'Bearer',
+        //     'user' => $newUser
+        // ], 201);
     }
     //update profile
     public function updateProfileRider(Request $request)
