@@ -306,13 +306,13 @@ class AuthController extends Controller
     {
           $request->validate(['email' => 'required|email|exists:users,email']);
         // $request->validate(['email' => 'required|email|exists:users,email']);
-    
+
     $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
     DB::table('password_reset_tokens')->updateOrInsert(
         ['email' => $request->email],
         [
-            'token' => Hash::make($code), 
+            'token' => Hash::make($code),
             'created_at' => \Carbon\Carbon::now()
         ]
     );
@@ -320,7 +320,7 @@ class AuthController extends Controller
     Notification::route('mail', $request->email)
         ->notify(new SendNumericResetCodeNotification($code));
 
-    return response()->json(['message' => 'Reset code has been sent to your email.']); 
+    return response()->json(['message' => 'Reset code has been sent to your email.']);
 
     }
 
@@ -329,7 +329,7 @@ class AuthController extends Controller
         $request->validate([
         'email' => 'required|email|exists:users,email',
         'code' => 'required|string|min:6|max:6',
-        'password' => 'required|string|min:8|confirmed|PasswordRule::min(8)->mixedCase()->numbers()->symbols()',
+        'password' => 'required|string|min:8|confirmed'
     ]);
 
     // 1. Retrieve the token record from the database table
@@ -350,7 +350,7 @@ if (\Carbon\Carbon::parse($record->created_at)->isBefore($expirationThreshold)) 
     // 3. Verify the 6-digit code securely using Hash::check
     $userInputCode = (string) $request->code;
 
-// Optional: Add this line temporarily to check your storage/logs/laravel.log 
+// Optional: Add this line temporarily to check your storage/logs/laravel.log
 \Illuminate\Support\Facades\Log::info([$userInputCode, $record->token]);
 
 if (Hash::check($userInputCode, $record->token)) {
