@@ -22,7 +22,7 @@ Route::prefix('v1')->group(function () {
 Route::prefix('v1/us/rider')->middleware('auth:sanctum')->group(function () {
     Route::put('/updateProfile', [AuthController::class, 'updateProfileRider']);
    // Step 1: User requests an calculation pricing estimate
-    Route::post('/rides/estimate', [TripController::class, 'estimateTrip']); 
+    Route::post('/rides/estimate', [TripController::class, 'estimateTrip']);
     // Step 2: User clicks "Confirm Booking" on the app screen
     Route::post('/rides/book', [TripController::class, 'store']);
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -30,21 +30,22 @@ Route::prefix('v1/us/rider')->middleware('auth:sanctum')->group(function () {
     Route::put('/updateImage', [AuthController::class, 'changeImage']);
     Route::put('/updatePassword', [AuthController::class, 'changePassword']);
     Route::get('/rides/{id}/status', [TripController::class, 'checkRideStatus']); // <-- Add this tracking line
+    Route::get('/rides', [TripController::class, 'index']); // <-- get all rides for the rider
 });
 
 Route::prefix('v1/ng/rider')->middleware('auth:sanctum')->group(function () {
     Route::put('/updateProfile', [AuthController::class, 'updateProfileRider']);
     // Step 1: User requests a calculation pricing estimate
-    Route::post('/rides/estimate', [TripController::class, 'estimateTrip']);   
+    Route::post('/rides/estimate', [TripController::class, 'estimateTrip']);
     // Step 2: User clicks "Confirm Booking" on the app screen
     Route::post('/rides/book', [TripController::class, 'store']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/dashboard', [RiderController::class, 'dashboard']);
     Route::put('/updateImage', [AuthController::class, 'changeImage']);
     Route::put('/updatePassword', [AuthController::class, 'changePassword']);
-    Route::get('/rides/{id}/status', [TripController::class, 'checkRideStatus']); // <-- Add this tracking line
+    Route::get('/rides/{id}/status', [TripController::class, 'checkRideStatus']);
+    Route::get('/rides', [TripController::class, 'index']); // <-- get all rides for the rider
 });
-
 Route::prefix('v1/ng/driver')->middleware('auth:sanctum')->group(function () {
     Route::put('/updateProfile', [AuthController::class, 'updateProfileDriver']);
     Route::get('/dashboard', [DriverController::class, 'dashboard']);
@@ -76,3 +77,4 @@ Route::prefix('v1/us/driver')->middleware('auth:sanctum')->group(function () {
     Route::get('/earnings', [TripController::class, 'driverEarnings']); // Fetches financial stats
     Route::get('/wallet', [TripController::class, 'walletBalance']);
 });
+
